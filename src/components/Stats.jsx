@@ -2,13 +2,6 @@
 import { motion, useInView } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
 
-const stats = [
-    { label: "Active Users", value: 50000, suffix: "+" },
-    { label: "Projects Completed", value: 120000, suffix: "+" },
-    { label: "Average Rating", value: 4.9, suffix: "/5", isFloat: true },
-    { label: "Countries Served", value: 150, suffix: "+" }
-];
-
 function Counter({ from, to, duration = 2, isFloat = false }) {
     const nodeRef = useRef();
     const inView = useInView(nodeRef, { once: true, margin: "-50px" });
@@ -41,6 +34,13 @@ function Counter({ from, to, duration = 2, isFloat = false }) {
 }
 
 export default function Stats() {
+  const stats = [
+    { label: "Active Freelancers", value: 50000, suffix: "+" },
+    { label: "Projects Completed", value: 120000, suffix: "+" },
+    { label: "Client Satisfaction", value: 4.9, suffix: "/5", isFloat: true },
+    { label: "Countries Served", value: 150, suffix: "+" }
+  ];
+  
   return (
     <section className="py-20 bg-blue-600 text-white relative overflow-hidden">
         {/* Background Patterns */}

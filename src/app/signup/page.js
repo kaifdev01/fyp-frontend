@@ -12,8 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import AuthLayout from "../../components/AuthLayout";
 
 const countries = [
-  "Afghanistan",  "Albania",  "Algeria",  "Andorra",  "Angola",  "Antigua and Barbuda",  "Argentina",  "Armenia", "Australia", "Austria","Azerbaijan", "Bahamas",  "Bahrain","Bangladesh",  "Barbados",  "Belarus","Belgium","Belize", "Benin", "Bhutan","Bolivia",
-  "Bosnia and Herzegovina","Botswana",
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
+  "Bosnia and Herzegovina", "Botswana",
   "Brazil",
   "Brunei",
   "Bulgaria",
@@ -253,7 +253,7 @@ export default function SignUp() {
       );
       toast.error(
         error.response?.data?.message ||
-          "Registration failed. Please try again."
+        "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -279,21 +279,35 @@ export default function SignUp() {
     try {
       const otpCode = otp.join("");
       const response = await api.post("/api/auth/verify-otp", {
-        // Used api.post
         email: formData.email,
         otp: otpCode,
       });
 
       console.log("OTP verification successful:", response.data);
-      toast.success("Account created successfully!");
-      setTimeout(() => {
-        localStorage.setItem("userEmail", formData.email);
-        if (userType === "client") {
-          window.location.href = "/complete-profile";
-        } else {
-          window.location.href = "/freelancer-profile";
-        }
-      }, 1500);
+
+      if (response.data.isAddingRole) {
+        // User added a new role
+        toast.success(`${response.data.newRole} role added successfully!`);
+        setTimeout(() => {
+          localStorage.setItem("userEmail", formData.email);
+          if (response.data.newRole === "client") {
+            window.location.href = "/complete-profile";
+          } else {
+            window.location.href = "/freelancer-profile";
+          }
+        }, 1500);
+      } else {
+        // New user account created
+        toast.success("Account created successfully!");
+        setTimeout(() => {
+          localStorage.setItem("userEmail", formData.email);
+          if (userType === "client") {
+            window.location.href = "/complete-profile";
+          } else {
+            window.location.href = "/freelancer-profile";
+          }
+        }, 1500);
+      }
     } catch (error) {
       console.error(
         "OTP verification failed:",
@@ -340,6 +354,7 @@ export default function SignUp() {
       return;
     }
     localStorage.setItem("selectedRole", userType);
+    localStorage.setItem("authFlow", "signup");
     signIn("google", {
       callbackUrl: "/oauth-handler",
       redirect: true,
@@ -352,6 +367,7 @@ export default function SignUp() {
       return;
     }
     localStorage.setItem("selectedRole", userType);
+    localStorage.setItem("authFlow", "signup");
     signIn("github", {
       callbackUrl: "/oauth-handler",
       redirect: true,
@@ -388,34 +404,32 @@ export default function SignUp() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div
                 onClick={() => setUserType("freelancer")}
-                className={`border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 ${
-                  userType === "freelancer"
-                    ? "border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20"
-                    : "border-gray-200 hover:border-blue-300 hover:shadow-sm"
-                }`}
+                className={`border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 ${userType === "freelancer"
+                  ? "border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-500/20"
+                  : "border-gray-200 hover:border-blue-300 hover:shadow-sm"
+                  }`}
               >
                 <div className="text-center">
                   <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <User className="text-blue-600" size={24} />
                   </div>
-                  <h3 className="font-bold text-lg mb-1">I'm a freelancer</h3>
+                  <h3 className="font-bold text-lg mb-1">I am a freelancer</h3>
                   <p className="text-sm text-gray-500">Looking for work</p>
                 </div>
               </div>
 
               <div
                 onClick={() => setUserType("client")}
-                className={`border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 ${
-                  userType === "client"
-                    ? "border-green-500 bg-green-50/50 shadow-md ring-2 ring-green-500/20"
-                    : "border-gray-200 hover:border-green-300 hover:shadow-sm"
-                }`}
+                className={`border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 ${userType === "client"
+                  ? "border-green-500 bg-green-50/50 shadow-md ring-2 ring-green-500/20"
+                  : "border-gray-200 hover:border-green-300 hover:shadow-sm"
+                  }`}
               >
                 <div className="text-center">
                   <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Building2 className="text-green-600" size={24} />
                   </div>
-                  <h3 className="font-bold text-lg mb-1">I'm a client</h3>
+                  <h3 className="font-bold text-lg mb-1">I am a client</h3>
                   <p className="text-sm text-gray-500">Hiring for a project</p>
                 </div>
               </div>
@@ -682,7 +696,7 @@ export default function SignUp() {
                 ← Back
               </button>
               <p className="text-sm text-gray-600">
-                Didn't receive code?
+                Did not receive code?
                 <button
                   onClick={handleResendOTP}
                   disabled={resendTimer > 0 || loading}

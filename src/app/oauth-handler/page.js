@@ -17,8 +17,24 @@ export default function OAuthHandler() {
       if (session?.user?.email) {
         try {
           // Get provider info
-          const provider = session.provider || "google"; // Default to google
-          const providerId = session.user.id || session.user.email;
+          const provider = session.provider || "google";
+          const providerId = session.user.id;
+
+          // Check auth flow type and selected role
+          const authFlow = localStorage.getItem("authFlow");
+          const selectedRole = localStorage.getItem("selectedRole");
+          
+          // Clean up localStorage
+          localStorage.removeItem("authFlow");
+          localStorage.removeItem("selectedRole");
+
+          console.log("Processing OAuth with:", {
+            email: session.user.email,
+            provider,
+            providerId,
+            role: selectedRole,
+            flow: authFlow
+          });
 
           // Call unified OAuth endpoint
           const response = await api.post("/api/auth/oauth-login", {
@@ -26,6 +42,7 @@ export default function OAuthHandler() {
             name: session.user.name || session.user.email.split("@")[0],
             provider,
             providerId,
+            ...(selectedRole && { role: selectedRole }),
           });
 
           // Store token and user data
@@ -34,17 +51,19 @@ export default function OAuthHandler() {
 
           // Handle routing based on user status
           if (response.data.needsRoleSelection) {
-            // User needs to select role (new user or incomplete profile)
-            const preSelectedRole = localStorage.getItem("selectedRole");
-            localStorage.removeItem("selectedRole");
-
-            if (preSelectedRole) {
-              localStorage.setItem("preSelectedRole", preSelectedRole);
-            }
-
+            // User needs to select role
             localStorage.setItem("oauthEmail", session.user.email);
             localStorage.setItem("oauthName", session.user.name || "");
             router.push("/role-selection");
+          } else if (response.data.needsProfileCompletion) {
+            // User has role but needs to complete profile
+            localStorage.setItem("userEmail", session.user.email);
+            const userRole = response.data.user.primaryRole;
+            router.push(
+              userRole === "client"
+                ? "/complete-profile"
+                : "/freelancer-profile"
+            );
           } else {
             // Existing user with complete profile - redirect to dashboard
             const userRole = response.data.user.primaryRole;
@@ -56,10 +75,12 @@ export default function OAuthHandler() {
           }
         } catch (error) {
           console.error("OAuth flow failed:", error);
-          router.push("/login");
+          const errorMsg =
+            error.response?.data?.message || "Authentication failed";
+          router.push(`/login?error=${encodeURIComponent(errorMsg)}`);
         }
       } else {
-        router.push("/login");
+        router.push("/login?error=NoSessionEmail");
       }
       setChecking(false);
     };

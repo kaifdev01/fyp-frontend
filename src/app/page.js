@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Hero from "../components/Hero";
@@ -17,7 +17,6 @@ export default function Home() {
       <Header />
 
       <main>
-        {/* Helper Wrapper to ensure smooth scrolling flow */}
         <div className="flex flex-col gap-0">
           <Hero />
           <TrustedBy />

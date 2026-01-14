@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Menu, X, Search, User, LogOut } from 'lucide-react';
+import api from '../lib/api';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const router = useRouter();
@@ -23,11 +25,42 @@ export default function Header() {
       if (showProfileMenu && !event.target.closest('.profile-menu')) {
         setShowProfileMenu(false);
       }
+      if (showRoleMenu && !event.target.closest('.role-menu')) {
+        setShowRoleMenu(false);
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [showProfileMenu]);
+  }, [showProfileMenu, showRoleMenu]);
+
+  const switchRole = async (newRole) => {
+    try {
+      const response = await api.post('/api/auth/switch-role', {
+        role: newRole
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.data.success) {
+        // Update stored user data
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setUser(response.data.user);
+        setShowRoleMenu(false);
+        
+        // Redirect to appropriate dashboard
+        if (newRole === 'client') {
+          router.push('/client-dashboard');
+        } else {
+          router.push('/freelancer-dashboard');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to switch role:', error);
+    }
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -60,27 +93,59 @@ export default function Header() {
               <Search size={20} />
             </button>
             {isLoggedIn ? (
-              <div className="relative profile-menu">
-                <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-white" />
-                  </div>
-                  <span className="text-gray-700">{user?.name?.split(' ')[0]}</span>
-                </button>
-                {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <div className="flex items-center space-x-4">
+                {/* Role Switcher - only show if user has multiple roles */}
+                {user?.roles?.length > 1 && (
+                  <div className="relative role-menu">
                     <button
-                      onClick={handleSignOut}
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowRoleMenu(!showRoleMenu)}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm"
                     >
-                      <LogOut size={16} />
-                      <span>Sign Out</span>
+                      <span className="capitalize">{user.primaryRole}</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
+                    {showRoleMenu && (
+                      <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                        {user.roles.map((role) => (
+                          <button
+                            key={role}
+                            onClick={() => switchRole(role)}
+                            className={`w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors capitalize ${
+                              user.primaryRole === role ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+                
+                <div className="relative profile-menu">
+                  <button
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <User size={16} className="text-white" />
+                    </div>
+                    <span className="text-gray-700">{user?.name?.split(' ')[0]}</span>
+                  </button>
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <>

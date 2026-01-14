@@ -1,52 +1,84 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { User, Building2 } from 'lucide-react';
-import Header from '../../components/Header';
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { User, Building2 } from "lucide-react";
+import Header from "../../components/Header";
+import api from "../../lib/api";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function RoleSelection() {
   const router = useRouter();
-  const [userType, setUserType] = useState('');
-  
+  const [userType, setUserType] = useState("");
+
   // Check for pre-selected role from signup
   useEffect(() => {
-    const preSelected = localStorage.getItem('preSelectedRole');
+    const preSelected = localStorage.getItem("preSelectedRole");
     if (preSelected) {
       setUserType(preSelected);
-      localStorage.removeItem('preSelectedRole');
+      localStorage.removeItem("preSelectedRole");
     }
   }, []);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!userType) return;
-    
-    const email = localStorage.getItem('oauthEmail');
-    localStorage.setItem('userEmail', email);
-    localStorage.removeItem('oauthEmail');
-    localStorage.removeItem('oauthName');
-    
-    if (userType === 'client') {
-      router.push('/complete-profile');
-    } else {
-      router.push('/freelancer-profile');
+
+    const email = localStorage.getItem("oauthEmail") || localStorage.getItem("pendingUser") && JSON.parse(localStorage.getItem("pendingUser")).email;
+
+    try {
+      // Call backend to update user's role
+      const response = await api.post("/api/auth/update-role", {
+        email,
+        role: userType,
+      });
+
+      if (response.data.success) {
+        // Update stored token and user data
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        localStorage.setItem("userEmail", email);
+        localStorage.removeItem("oauthEmail");
+        localStorage.removeItem("oauthName");
+        localStorage.removeItem("pendingUser");
+
+        toast.success(`Role updated to ${userType}!`);
+        
+        // Redirect to profile completion
+        setTimeout(() => {
+          if (userType === "client") {
+            router.push("/complete-profile");
+          } else {
+            router.push("/freelancer-profile");
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Failed to update role:", error);
+      toast.error(error.response?.data?.message || "Failed to update role");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
       <Header />
-      
+
       <div className="pt-20 pb-16">
         <div className="max-w-2xl mx-auto px-4">
           <div className="bg-white rounded-xl shadow-xl p-10">
-            <h1 className="text-3xl font-bold text-center mb-3">Join as a freelancer or client</h1>
-            <p className="text-gray-600 text-center mb-10">Choose how you want to use WorkDeck</p>
+            <h1 className="text-3xl font-bold text-center mb-3">
+              Join as a freelancer or client
+            </h1>
+            <p className="text-gray-600 text-center mb-10">
+              Choose how you want to use WorkDeck
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div
-                onClick={() => setUserType('freelancer')}
+                onClick={() => setUserType("freelancer")}
                 className={`border-2 rounded-xl p-8 cursor-pointer transition-all duration-200 ${
-                  userType === 'freelancer' ? 'border-blue-500 bg-blue-50 shadow-lg' : 'border-gray-200 hover:border-blue-300'
+                  userType === "freelancer"
+                    ? "border-blue-500 bg-blue-50 shadow-lg"
+                    : "border-gray-200 hover:border-blue-300"
                 }`}
               >
                 <div className="text-center">
@@ -59,9 +91,11 @@ export default function RoleSelection() {
               </div>
 
               <div
-                onClick={() => setUserType('client')}
+                onClick={() => setUserType("client")}
                 className={`border-2 rounded-xl p-8 cursor-pointer transition-all duration-200 ${
-                  userType === 'client' ? 'border-green-500 bg-green-50 shadow-lg' : 'border-gray-200 hover:border-green-300'
+                  userType === "client"
+                    ? "border-green-500 bg-green-50 shadow-lg"
+                    : "border-gray-200 hover:border-green-300"
                 }`}
               >
                 <div className="text-center">

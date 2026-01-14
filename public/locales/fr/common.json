@@ -1,0 +1,35 @@
+{
+  "hero": {
+    "title": "Trouvez les services freelance parfaits pour votre entreprise",
+    "subtitle": "Travaillez avec des personnes talentueuses au prix le plus abordable pour tirer le meilleur parti de votre temps et de vos coûts",
+    "searchPlaceholder": "Rechercher n'importe quel service...",
+    "searchButton": "Rechercher",
+    "joinButton": "Rejoindre WorkDeck"
+  },
+  "stats": {
+    "freelancers": "Freelancers Actifs",
+    "projects": "Projets Terminés",
+    "satisfaction": "Satisfaction Client"
+  },
+  "categories": {
+    "title": "Parcourir les talents par catégorie",
+    "webDev": "Développement Web",
+    "mobileApp": "Développement d'Applications Mobiles",
+    "uiux": "Design UI/UX",
+    "digitalMarketing": "Marketing Digital",
+    "contentWriting": "Rédaction de Contenu",
+    "dataScience": "Science des Données"
+  },
+  "cta": {
+    "freelancer": {
+      "title": "Trouvez du bon travail",
+      "description": "Rencontrez des clients avec lesquels vous êtes ravi de travailler et portez votre carrière ou votre entreprise vers de nouveaux sommets.",
+      "button": "Trouver des Opportunités"
+    },
+    "client": {
+      "title": "Trouvez des talents à votre façon",
+      "description": "Travaillez avec le plus grand réseau de professionnels indépendants et faites avancer les choses—des livraisons rapides aux grandes transformations.",
+      "button": "Commencer"
+    }
+  }
+}

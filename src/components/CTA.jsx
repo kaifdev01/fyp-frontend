@@ -20,10 +20,10 @@ export default function CTA() {
 
           <div className="relative z-10 space-y-8">
             <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-              Ready to turn your ideas<br />into reality?
+              Ready to start your next project?
             </h2>
             <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto">
-              Join our community of expert freelancers and innovative businesses. Start your journey today.
+              Join thousands of businesses who trust WorkDeck to get their projects done
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -33,7 +33,7 @@ export default function CTA() {
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg flex items-center gap-2"
                 >
-                  Get Started Now <ArrowRight size={20} />
+                  Get Started <ArrowRight size={20} />
                 </motion.button>
               </Link>
               <Link href="/freelancers">

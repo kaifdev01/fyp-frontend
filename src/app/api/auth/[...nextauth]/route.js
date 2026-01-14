@@ -1,6 +1,6 @@
-import NextAuth from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import GitHubProvider from 'next-auth/providers/github'
+import NextAuth from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
 
 const handler = NextAuth({
   providers: [
@@ -11,31 +11,39 @@ const handler = NextAuth({
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    })
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      return true
+      return true;
     },
     async session({ session, token }) {
-      return session
+      if (session.user) {
+        session.provider = token.provider;
+        session.user.id = token.providerAccountId; // Use provider account ID as user ID for OAuth
+      }
+      return session;
     },
     async jwt({ token, user, account }) {
-      if (user) {
-        token.email = user.email
-        token.name = user.name
+      if (account) {
+        token.provider = account.provider;
+        token.providerAccountId = account.providerAccountId;
       }
-      return token
+      if (user) {
+        token.email = user.email;
+        token.name = user.name;
+      }
+      return token;
     },
     async redirect({ url, baseUrl }) {
       // Always redirect to oauth-handler for OAuth
-      if (url.startsWith(baseUrl)) return url
-      return `${baseUrl}/oauth-handler`
-    }
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/oauth-handler`;
+    },
   },
   pages: {
-    signIn: '/signup',
-  }
-})
+    signIn: "/signup",
+  },
+});
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };

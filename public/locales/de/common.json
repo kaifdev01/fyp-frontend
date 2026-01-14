@@ -1,0 +1,35 @@
+{
+  "hero": {
+    "title": "Finden Sie die perfekten Freelance-Services für Ihr Unternehmen",
+    "subtitle": "Arbeiten Sie mit talentierten Menschen zum günstigsten Preis, um das Beste aus Ihrer Zeit und Ihren Kosten herauszuholen",
+    "searchPlaceholder": "Nach beliebigen Services suchen...",
+    "searchButton": "Suchen",
+    "joinButton": "WorkDeck beitreten"
+  },
+  "stats": {
+    "freelancers": "Aktive Freelancer",
+    "projects": "Abgeschlossene Projekte",
+    "satisfaction": "Kundenzufriedenheit"
+  },
+  "categories": {
+    "title": "Talente nach Kategorie durchsuchen",
+    "webDev": "Webentwicklung",
+    "mobileApp": "Mobile App-Entwicklung",
+    "uiux": "UI/UX Design",
+    "digitalMarketing": "Digitales Marketing",
+    "contentWriting": "Content-Erstellung",
+    "dataScience": "Datenwissenschaft"
+  },
+  "cta": {
+    "freelancer": {
+      "title": "Finden Sie großartige Arbeit",
+      "description": "Treffen Sie Kunden, mit denen Sie gerne arbeiten, und bringen Sie Ihre Karriere oder Ihr Unternehmen auf neue Höhen.",
+      "button": "Möglichkeiten finden"
+    },
+    "client": {
+      "title": "Finden Sie Talente auf Ihre Weise",
+      "description": "Arbeiten Sie mit dem größten Netzwerk unabhängiger Fachkräfte und bringen Sie Dinge voran—von schnellen Umsetzungen bis hin zu großen Transformationen.",
+      "button": "Loslegen"
+    }
+  }
+}

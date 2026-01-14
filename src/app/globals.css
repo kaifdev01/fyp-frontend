@@ -13,6 +13,15 @@
 }
 
 @layer utilities {
+  /* RTL Support */
+  .rtl {
+    direction: rtl;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+  
   .text-balance {
     text-wrap: balance;
   }

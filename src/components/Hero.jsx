@@ -40,15 +40,15 @@ export default function Hero() {
                                 transition={{ delay: 0.2 }}
                                 className="inline-block px-4 py-2 bg-white/50 backdrop-blur-sm border border-blue-100 rounded-full text-blue-600 font-semibold text-sm shadow-sm"
                             >
-                                🚀 The World's #1 Freelance Marketplace
+                                🚀 The Worlds #1 Freelance Marketplace
                             </motion.div>
 
                             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.1] text-gray-900 tracking-tight">
-                                Turn Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Ideas</span> Into <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-500">Reality</span>
+                                Find the perfect freelancer for your project
                             </h1>
 
                             <p className="text-lg sm:text-xl text-gray-600 leading-relaxed max-w-lg">
-                                Connect with top-tier talent for any project. From web development to design, we have the experts you need.
+                                Connect with skilled professionals and get your work done efficiently
                             </p>
                         </div>
 
@@ -64,7 +64,7 @@ export default function Hero() {
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                     <input
                                         type="text"
-                                        placeholder="What service are you looking for?"
+                                        placeholder="Search for services..."
                                         className="w-full h-12 pl-12 pr-4 bg-transparent border-none outline-none text-gray-700 placeholder:text-gray-400 font-medium"
                                     />
                                 </div>

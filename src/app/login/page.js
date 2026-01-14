@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 // import axios from 'axios'; // Removed direct axios import
 import api from "../../lib/api"; // Use centralized API
@@ -11,12 +11,22 @@ import AuthLayout from "../../components/AuthLayout";
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      toast.error(decodeURIComponent(error));
+      // Optional: Clear the error from URL
+      router.replace("/login");
+    }
+  }, [searchParams, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -41,11 +51,27 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
       toast.success("Login successful!");
+      
+      // Handle role-based redirection
+      const user = response.data.user;
+      let redirectPath = "/";
+      
+      if (user.roles && user.roles.length > 0) {
+        // If user has multiple roles, use primaryRole for redirection
+        const activeRole = user.primaryRole || user.roles[0];
+        
+        if (activeRole === "client") {
+          redirectPath = "/client-dashboard";
+        } else if (activeRole === "freelancer") {
+          redirectPath = "/freelancer-dashboard";
+        }
+      } else {
+        // User has no roles assigned, redirect to role selection
+        redirectPath = "/role-selection";
+      }
+      
       setTimeout(() => {
-        const userRole = response.data.user.role;
-        router.push(
-          userRole === "client" ? "/client-dashboard" : "/freelancer-dashboard"
-        );
+        router.push(redirectPath);
       }, 1500);
     } catch (error) {
       toast.error(
@@ -57,6 +83,7 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = () => {
+    localStorage.setItem("authFlow", "login");
     signIn("google", {
       callbackUrl: "/oauth-handler",
       redirect: true,
@@ -64,6 +91,7 @@ export default function Login() {
   };
 
   const handleGitHubSignIn = () => {
+    localStorage.setItem("authFlow", "login");
     signIn("github", {
       callbackUrl: "/oauth-handler",
       redirect: true,

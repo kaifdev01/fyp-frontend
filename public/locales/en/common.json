@@ -1,0 +1,48 @@
+{
+  "hero": {
+    "title": "Find the perfect freelance services for your business",
+    "subtitle": "Work with talented people at the most affordable price to get the most out of your time and cost",
+    "searchPlaceholder": "Search for any service...",
+    "searchButton": "Search",
+    "joinButton": "Join WorkDeck"
+  },
+  "stats": {
+    "freelancers": "Active Freelancers",
+    "projects": "Projects Completed",
+    "satisfaction": "Client Satisfaction"
+  },
+  "services": {
+    "title": "Browse talent by category",
+    "webDev": "Web Development",
+    "mobileApp": "Mobile App Development",
+    "uiux": "UI/UX Design",
+    "digitalMarketing": "Digital Marketing",
+    "contentWriting": "Content Writing",
+    "dataScience": "Data Science"
+  },
+  "whyChooseUs": {
+    "title": "Why choose WorkDeck?",
+    "subtitle": "We provide the best platform for freelancers and clients",
+    "feature1": "Verified Professionals",
+    "feature2": "Secure Payments",
+    "feature3": "24/7 Support"
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "step1": "Post your project",
+    "step2": "Choose freelancers",
+    "step3": "Pay safely"
+  },
+  "cta": {
+    "freelancer": {
+      "title": "Find great work",
+      "description": "Meet clients you're excited to work with and take your career or business to new heights.",
+      "button": "Find Opportunities"
+    },
+    "client": {
+      "title": "Find talent your way",
+      "description": "Work with the largest network of independent professionals and get things done—from quick turnarounds to big transformations.",
+      "button": "Get Started"
+    }
+  }
+}

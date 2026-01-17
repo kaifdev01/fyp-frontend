@@ -22,17 +22,15 @@ export default function RoleSelection() {
   const handleContinue = async () => {
     if (!userType) return;
 
-    const email = localStorage.getItem("oauthEmail") || localStorage.getItem("pendingUser") && JSON.parse(localStorage.getItem("pendingUser")).email;
+    const email = localStorage.getItem("oauthEmail") || (localStorage.getItem("pendingUser") && JSON.parse(localStorage.getItem("pendingUser")).email);
 
     try {
-      // Call backend to update user's role
       const response = await api.post("/api/auth/update-role", {
         email,
         role: userType,
       });
 
       if (response.data.success) {
-        // Update stored token and user data
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         localStorage.setItem("userEmail", email);
@@ -42,7 +40,6 @@ export default function RoleSelection() {
 
         toast.success(`Role updated to ${userType}!`);
         
-        // Redirect to profile completion
         setTimeout(() => {
           if (userType === "client") {
             router.push("/complete-profile");

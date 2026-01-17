@@ -51,15 +51,15 @@ function LoginForm() {
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
       toast.success("Login successful!");
-      
+
       // Handle role-based redirection
       const user = response.data.user;
       let redirectPath = "/";
-      
+
       if (user.roles && user.roles.length > 0) {
         // If user has multiple roles, use primaryRole for redirection
         const activeRole = user.primaryRole || user.roles[0];
-        
+
         if (activeRole === "client") {
           redirectPath = "/client-dashboard";
         } else if (activeRole === "freelancer") {
@@ -69,7 +69,7 @@ function LoginForm() {
         // User has no roles assigned, redirect to role selection
         redirectPath = "/role-selection";
       }
-      
+
       setTimeout(() => {
         router.push(redirectPath);
       }, 1500);
@@ -226,7 +226,7 @@ function LoginForm() {
       </form>
 
       <p className="text-center text-sm text-gray-600 mt-8">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/signup"
           className="text-blue-600 hover:text-blue-700 font-bold hover:underline"

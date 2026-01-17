@@ -16,17 +16,10 @@ export default function OAuthHandler() {
 
       if (session?.user?.email) {
         try {
-          // Get provider info
           const provider = session.provider || "google";
           const providerId = session.user.id;
-
-          // Check auth flow type and selected role
-          const authFlow = localStorage.getItem("authFlow");
+          const authFlow = localStorage.getItem("authFlow") || "login";
           const selectedRole = localStorage.getItem("selectedRole");
-          
-          // Clean up localStorage
-          localStorage.removeItem("authFlow");
-          localStorage.removeItem("selectedRole");
 
           console.log("Processing OAuth with:", {
             email: session.user.email,
@@ -48,10 +41,12 @@ export default function OAuthHandler() {
           // Store token and user data
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("user", JSON.stringify(response.data.user));
+          localStorage.removeItem("authFlow");
+          localStorage.removeItem("selectedRole");
 
           // Handle routing based on user status
           if (response.data.needsRoleSelection) {
-            // User needs to select role
+            // New user needs to select role
             localStorage.setItem("oauthEmail", session.user.email);
             localStorage.setItem("oauthName", session.user.name || "");
             router.push("/role-selection");

@@ -35,12 +35,8 @@ export default function CompleteProfile() {
         // User is already authenticated, redirect to dashboard
         router.push("/client-dashboard");
       } else {
-        // Only redirect to signup if no email, no session, and no token
-        const timer = setTimeout(() => {
-          router.push("/signup");
-        }, 2000); // Give more time for OAuth callback
-
-        return () => clearTimeout(timer);
+        // No authentication, redirect to login
+        router.push("/login");
       }
     }
   }, [router, session]);

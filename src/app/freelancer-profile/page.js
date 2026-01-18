@@ -82,11 +82,8 @@ export default function FreelancerProfile() {
       } else if (token) {
         router.push("/freelancer-dashboard");
       } else {
-        // Allow brief delay for session to load, but redirect if truly unauthenticated
-        const timer = setTimeout(() => {
-          if (!session && !token && !email) router.push("/signup");
-        }, 2000);
-        return () => clearTimeout(timer);
+        // No authentication, redirect to login
+        router.push("/login");
       }
     }
   }, [router, session]);

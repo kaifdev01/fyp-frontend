@@ -53,17 +53,18 @@ export default function OAuthHandler() {
           } else if (response.data.needsProfileCompletion) {
             // User has role but needs to complete profile
             localStorage.setItem("userEmail", session.user.email);
-            const userRole = response.data.user.primaryRole;
+            // Use the newly selected role for profile completion, not primary role
+            const roleForProfile = selectedRole || response.data.user.primaryRole;
             router.push(
-              userRole === "client"
+              roleForProfile === "client"
                 ? "/complete-profile"
                 : "/freelancer-profile"
             );
           } else {
-            // Existing user with complete profile - redirect to dashboard
-            const userRole = response.data.user.primaryRole;
+            // No flags set - redirect to dashboard of selected role or primary role
+            const redirectRole = selectedRole || response.data.user.primaryRole;
             router.push(
-              userRole === "client"
+              redirectRole === "client"
                 ? "/client-dashboard"
                 : "/freelancer-dashboard"
             );

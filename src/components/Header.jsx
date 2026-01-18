@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X, Search, User, LogOut } from 'lucide-react';
 import api from '../lib/api';
 
@@ -12,13 +12,28 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Get current role based on URL
+  const getCurrentRole = () => {
+    if (pathname?.includes('/client-dashboard')) return 'client';
+    if (pathname?.includes('/freelancer-dashboard')) return 'freelancer';
+    return user?.primaryRole || 'client';
+  };
+
+  const currentRole = getCurrentRole();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setIsLoggedIn(true);
-      setUser(JSON.parse(userData));
+    if (token && userData && userData !== 'undefined') {
+      try {
+        setIsLoggedIn(true);
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
     }
 
     const handleClickOutside = (event) => {
@@ -36,21 +51,26 @@ export default function Header() {
 
   const switchRole = async (newRole) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        router.push('/login');
+        return;
+      }
+
       const response = await api.post('/api/auth/switch-role', {
         role: newRole
       }, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${token}`
         }
       });
       
       if (response.data.success) {
-        // Update stored user data
         localStorage.setItem('user', JSON.stringify(response.data.user));
         setUser(response.data.user);
         setShowRoleMenu(false);
         
-        // Redirect to appropriate dashboard
         if (newRole === 'client') {
           router.push('/client-dashboard');
         } else {
@@ -59,6 +79,11 @@ export default function Header() {
       }
     } catch (error) {
       console.error('Failed to switch role:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
+      }
     }
   };
 
@@ -94,26 +119,26 @@ export default function Header() {
             </button>
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
-                {/* Role Switcher - only show if user has multiple roles */}
-                {user?.roles?.length > 1 && (
+                {/* Role Switcher - only show if user has multiple completed roles */}
+                {user?.roles?.length > 1 && user?.roles?.every(role => role !== 'pending') && (
                   <div className="relative role-menu">
                     <button
                       onClick={() => setShowRoleMenu(!showRoleMenu)}
                       className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm"
                     >
-                      <span className="capitalize">{user.primaryRole}</span>
+                      <span className="capitalize">{currentRole}</span>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
                     {showRoleMenu && (
                       <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                        {user.roles.map((role) => (
+                        {user.roles.filter(role => role !== 'pending').map((role) => (
                           <button
                             key={role}
                             onClick={() => switchRole(role)}
                             className={`w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors capitalize ${
-                              user.primaryRole === role ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                              currentRole === role ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
                             }`}
                           >
                             {role}
@@ -122,6 +147,16 @@ export default function Header() {
                       </div>
                     )}
                   </div>
+                )}
+                
+                {/* Add Role Option - show if user has only one role */}
+                {false && user?.roles?.length === 1 && (
+                  <Link 
+                    href="/role-selection"
+                    className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    Add {user.primaryRole === 'freelancer' ? 'Client' : 'Freelancer'} Role
+                  </Link>
                 )}
                 
                 <div className="relative profile-menu">

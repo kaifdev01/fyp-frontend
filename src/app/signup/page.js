@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 // import axios from 'axios'; // Removed direct axios import
 import api from "../../lib/api"; // Use centralized API
 import toast, { Toaster } from "react-hot-toast";
-import { User, Building2 } from "lucide-react";
+import { User, Building2, Check, X } from "lucide-react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -185,6 +185,28 @@ const countries = [
   "Zimbabwe",
 ];
 
+// Password strength checker
+const checkPasswordStrength = (password) => {
+  const criteria = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    symbol: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  };
+  
+  const score = Object.values(criteria).filter(Boolean).length;
+  let strength = 'Very Weak';
+  let color = 'red';
+  
+  if (score >= 5) { strength = 'Very Strong'; color = 'green'; }
+  else if (score >= 4) { strength = 'Strong'; color = 'blue'; }
+  else if (score >= 3) { strength = 'Medium'; color = 'yellow'; }
+  else if (score >= 2) { strength = 'Weak'; color = 'orange'; }
+  
+  return { criteria, strength, color, score };
+};
+
 export default function SignUp() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -194,6 +216,7 @@ export default function SignUp() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resendTimer, setResendTimer] = useState(0);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -227,6 +250,11 @@ export default function SignUp() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    
+    // Check password strength when password changes
+    if (name === 'password') {
+      setPasswordStrength(checkPasswordStrength(value));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -580,6 +608,55 @@ export default function SignUp() {
                   )}
                 </button>
               </div>
+
+              {/* Password Strength Indicator */}
+              {formData.password && passwordStrength && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Password Strength:</span>
+                    <span className={`text-sm font-bold text-${passwordStrength.color}-600`}>
+                      {passwordStrength.strength}
+                    </span>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        passwordStrength.color === 'red' ? 'bg-red-500' :
+                        passwordStrength.color === 'orange' ? 'bg-orange-500' :
+                        passwordStrength.color === 'yellow' ? 'bg-yellow-500' :
+                        passwordStrength.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                  
+                  {/* Criteria Checklist */}
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div className={`flex items-center gap-2 ${passwordStrength.criteria.length ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.criteria.length ? <Check size={12} /> : <X size={12} />}
+                      <span>At least 8 characters</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.criteria.uppercase ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.criteria.uppercase ? <Check size={12} /> : <X size={12} />}
+                      <span>One uppercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.criteria.lowercase ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.criteria.lowercase ? <Check size={12} /> : <X size={12} />}
+                      <span>One lowercase letter</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.criteria.number ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.criteria.number ? <Check size={12} /> : <X size={12} />}
+                      <span>One number</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${passwordStrength.criteria.symbol ? 'text-green-600' : 'text-gray-400'}`}>
+                      {passwordStrength.criteria.symbol ? <Check size={12} /> : <X size={12} />}
+                      <span>One special character (!@#$%^&*)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <select
                 name="country"

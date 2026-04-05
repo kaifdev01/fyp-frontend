@@ -101,9 +101,9 @@ export default function Hero() {
                         transition={{ duration: 0.8 }}
                         className="relative w-full flex items-center lg:items-end justify-center lg:justify-end mt-8 lg:mt-0"
                     >
-                        <div className="relative w-full max-w-[500px] lg:max-w-[800px] aspect-square lg:-mb-10">
+                        <div className="relative w-full mt-6 max-w-[500px] lg:max-w-[800px] aspect-square lg:-mb-10">
                             {/* Main Hero Image */}
-                            <div className="absolute inset-4 bg-gradient-to-tr from-blue-100 to-purple-100 rounded-full animate-blob filter blur-3xl opacity-50"></div>
+                            <div className="absolute inset-4  bg-gradient-to-tr from-blue-100 to-purple-100 rounded-full animate-blob filter blur-3xl opacity-50"></div>
                             <Image
                                 src="/hero-img.png"
                                 alt="Freelancer at work"
@@ -111,7 +111,7 @@ export default function Hero() {
                                 width={475}
                                 height={475}
                                 sizes="(max-width: 768px) 100vw, 50vw"
-                                className="object-contain object-bottom drop-shadow-2xl z-10 -mb-20 sm:mb-0"
+                                className="object-contain object-bottom drop-shadow-2xl z-10 -mb-16 sm:mb-0"
                                 priority
                             />
 

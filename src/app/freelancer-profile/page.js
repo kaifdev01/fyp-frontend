@@ -29,11 +29,20 @@ export default function FreelancerProfile() {
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [skillInput, setSkillInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [languages, setLanguages] = useState([]);
+  const [languageInput, setLanguageInput] = useState("");
+  const [proficiencyInput, setProficiencyInput] = useState("fluent");
+  const [education, setEducation] = useState([]);
+  const [portfolio, setPortfolio] = useState([]);
   const [profileData, setProfileData] = useState({
+    title: "",
+    experience: "intermediate",
+    timezone: "UTC",
     bio: "",
     phone: "",
     profileImage: null,
     hourlyRate: "",
+    isAvailable: true,
   });
 
   useEffect(() => {
@@ -104,11 +113,61 @@ export default function FreelancerProfile() {
     }
   };
 
+  const addLanguage = () => {
+    if (languageInput.trim() && languages.length < 5) {
+      setLanguages([...languages, { language: languageInput.trim(), proficiency: proficiencyInput }]);
+      setLanguageInput("");
+      setProficiencyInput("fluent");
+    }
+  };
+
+  const removeLanguage = (index) => {
+    setLanguages(languages.filter((_, i) => i !== index));
+  };
+
+  const addEducation = () => {
+    if (education.length < 3) {
+      setEducation([...education, { degree: "", institution: "", year: "" }]);
+    }
+  };
+
+  const updateEducation = (index, field, value) => {
+    const updated = [...education];
+    updated[index][field] = value;
+    setEducation(updated);
+  };
+
+  const removeEducation = (index) => {
+    setEducation(education.filter((_, i) => i !== index));
+  };
+
+  const addPortfolio = () => {
+    if (portfolio.length < 5) {
+      setPortfolio([...portfolio, { title: "", url: "", description: "" }]);
+    }
+  };
+
+  const updatePortfolio = (index, field, value) => {
+    const updated = [...portfolio];
+    updated[index][field] = value;
+    setPortfolio(updated);
+  };
+
+  const removePortfolio = (index) => {
+    setPortfolio(portfolio.filter((_, i) => i !== index));
+  };
+
   const handleNextStep = (e) => {
     e.preventDefault();
-    if (step === 1 && selectedSkills.length === 0) {
-      toast.error("Please add at least one skill");
-      return;
+    if (step === 1) {
+      if (!profileData.title.trim()) {
+        toast.error("Please add your professional title");
+        return;
+      }
+      if (selectedSkills.length === 0) {
+        toast.error("Please add at least one skill");
+        return;
+      }
     }
     setStep((prev) => prev + 1);
   };
@@ -140,11 +199,18 @@ export default function FreelancerProfile() {
 
       const payload = {
         email: userEmail,
+        title: profileData.title,
+        experience: profileData.experience,
+        timezone: profileData.timezone,
         bio: profileData.bio,
         skills: selectedSkills,
         phone: profileData.phone,
         hourlyRate: profileData.hourlyRate,
         avatar: avatarUrl,
+        languages: languages,
+        education: education.filter(e => e.degree && e.institution),
+        portfolio: portfolio.filter(p => p.title && p.url),
+        isAvailable: profileData.isAvailable,
         role: "freelancer",
       };
 
@@ -182,7 +248,7 @@ export default function FreelancerProfile() {
   };
 
   const steps = [
-    { number: 1, title: "Expertise", description: "What do you do?" },
+    { number: 1, title: "Professional Info", description: "Title & Skills" },
     { number: 2, title: "Details", description: "Rates & Photo" },
   ];
 
@@ -246,12 +312,65 @@ export default function FreelancerProfile() {
                   >
                     <div>
                       <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                        Tell us about yourself
+                        Professional Information
                       </h2>
                       <p className="text-gray-500 mb-6">
-                        Write a bio to connect with clients.
+                        Tell clients about your expertise.
                       </p>
 
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Professional Title *
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        placeholder="e.g. Full Stack Developer"
+                        value={profileData.title}
+                        onChange={handleInputChange}
+                        maxLength="100"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Experience Level
+                        </label>
+                        <select
+                          name="experience"
+                          value={profileData.experience}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        >
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="expert">Expert</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Timezone
+                        </label>
+                        <select
+                          name="timezone"
+                          value={profileData.timezone}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        >
+                          <option value="UTC">UTC</option>
+                          <option value="America/New_York">EST</option>
+                          <option value="America/Chicago">CST</option>
+                          <option value="America/Los_Angeles">PST</option>
+                          <option value="Europe/London">GMT</option>
+                          <option value="Asia/Karachi">PKT</option>
+                          <option value="Asia/Dubai">GST</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Professional Bio
                       </label>
@@ -260,18 +379,19 @@ export default function FreelancerProfile() {
                         placeholder="I am a Full Stack Developer with 5 years of experience..."
                         value={profileData.bio}
                         onChange={handleInputChange}
-                        rows="6"
+                        rows="4"
+                        maxLength="500"
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-gray-700"
                         required
                       />
                       <p className="text-xs text-right text-gray-400 mt-1">
-                        {profileData.bio.length} chars
+                        {profileData.bio.length}/500
                       </p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Skills & Expertise
+                        Skills & Expertise *
                       </label>
                       <div className="relative">
                         <input
@@ -326,6 +446,134 @@ export default function FreelancerProfile() {
                       </div>
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Languages (Optional)
+                      </label>
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          placeholder="e.g. English"
+                          value={languageInput}
+                          onChange={(e) => setLanguageInput(e.target.value)}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                        />
+                        <select
+                          value={proficiencyInput}
+                          onChange={(e) => setProficiencyInput(e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="conversational">Conversational</option>
+                          <option value="fluent">Fluent</option>
+                          <option value="native">Native</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={addLanguage}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold whitespace-nowrap"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {languages.map((lang, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
+                            <span className="text-sm text-gray-700">{lang.language} - <span className="text-gray-500 capitalize">{lang.proficiency}</span></span>
+                            <button type="button" onClick={() => removeLanguage(idx)} className="text-red-500 hover:text-red-700">
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          Education (Optional)
+                        </label>
+                        <button type="button" onClick={addEducation} className="text-sm text-blue-600 hover:text-blue-700 font-semibold">
+                          + Add
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {education.map((edu, idx) => (
+                          <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <input
+                                type="text"
+                                placeholder="Degree"
+                                value={edu.degree}
+                                onChange={(e) => updateEducation(idx, 'degree', e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                              />
+                              <button type="button" onClick={() => removeEducation(idx)} className="ml-2 text-red-500 hover:text-red-700">
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="Institution"
+                              value={edu.institution}
+                              onChange={(e) => updateEducation(idx, 'institution', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Year"
+                              value={edu.year}
+                              onChange={(e) => updateEducation(idx, 'year', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                          Portfolio (Optional)
+                        </label>
+                        <button type="button" onClick={addPortfolio} className="text-sm text-blue-600 hover:text-blue-700 font-semibold">
+                          + Add
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {portfolio.map((item, idx) => (
+                          <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <input
+                                type="text"
+                                placeholder="Project Title"
+                                value={item.title}
+                                onChange={(e) => updatePortfolio(idx, 'title', e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                              />
+                              <button type="button" onClick={() => removePortfolio(idx)} className="ml-2 text-red-500 hover:text-red-700">
+                                <X size={16} />
+                              </button>
+                            </div>
+                            <input
+                              type="url"
+                              placeholder="URL"
+                              value={item.url}
+                              onChange={(e) => updatePortfolio(idx, 'url', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm"
+                            />
+                            <textarea
+                              placeholder="Description"
+                              value={item.description}
+                              onChange={(e) => updatePortfolio(idx, 'description', e.target.value)}
+                              rows="2"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm resize-none"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="pt-6">
                       <button
                         type="submit"
@@ -355,6 +603,21 @@ export default function FreelancerProfile() {
                         Set your rate and add a photo.
                       </p>
 
+                      <div className="mb-6">
+                        <label className="flex items-center justify-between p-4 border border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                          <div>
+                            <span className="block text-sm font-semibold text-gray-700">Available for Work</span>
+                            <span className="text-xs text-gray-500">Show clients you're ready for projects</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={profileData.isAvailable}
+                            onChange={(e) => setProfileData(prev => ({ ...prev, isAvailable: e.target.checked }))}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                        </label>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -370,10 +633,14 @@ export default function FreelancerProfile() {
                               placeholder="0.00"
                               value={profileData.hourlyRate}
                               onChange={handleInputChange}
+                              min="5"
+                              max="500"
+                              step="0.01"
                               className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold text-gray-800"
                               required
                             />
                           </div>
+                          <p className="text-xs text-gray-500 mt-1">Min $5, Max $500</p>
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -482,16 +749,23 @@ export default function FreelancerProfile() {
                           )}
                         </div>
                       </div>
-                      <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        Available
-                      </div>
+                      {profileData.isAvailable ? (
+                        <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          Available
+                        </div>
+                      ) : (
+                        <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
+                          Unavailable
+                        </div>
+                      )}
                     </div>
 
                     <h2 className="text-2xl font-bold text-gray-900 mb-1">
                       {userEmail ? userEmail.split("@")[0] : "Your Name"}
                     </h2>
-                    <p className="text-blue-600 font-medium mb-4">Freelancer</p>
+                    <p className="text-blue-600 font-medium mb-1">{profileData.title || "Professional Title"}</p>
+                    <p className="text-gray-500 text-sm mb-4 capitalize">{profileData.experience} • {profileData.timezone}</p>
 
                     <div className="flex items-center gap-6 py-4 border-t border-b border-gray-100 mb-6">
                       <div>

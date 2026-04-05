@@ -99,6 +99,8 @@ export default function FreelancerDashboard() {
 
   const getKYCStatusInfo = () => {
     const kycStatus = user?.kyc?.status;
+    const hasSubmittedKYC = user?.kyc?.documentNumber || user?.kyc?.documentImage;
+
     switch (kycStatus) {
       case 'verified':
         return {
@@ -140,13 +142,13 @@ export default function FreelancerDashboard() {
       default:
         return {
           icon: AlertCircle,
-          color: 'gray',
-          bgColor: 'bg-gray-50',
-          borderColor: 'border-gray-200',
-          textColor: 'text-gray-700',
-          badgeColor: 'bg-gray-100 text-gray-700',
-          title: 'ID Verification Required',
-          message: 'Complete your identity verification to unlock all features',
+          color: 'blue',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          textColor: 'text-blue-700',
+          badgeColor: 'bg-blue-100 text-blue-700',
+          title: 'Complete Your KYC',
+          message: 'Verify your identity to unlock all features and build trust with clients',
           action: 'Verify Now',
           actionLink: '/verify-identity',
         };
@@ -254,7 +256,7 @@ export default function FreelancerDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${kycInfo.badgeColor}`}>
-                      {user?.kyc?.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : 'Not Started'}
+                      {user?.kyc?.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : 'Not Submitted'}
                     </span>
                     {kycInfo.action && (
                       <Link
@@ -289,7 +291,7 @@ export default function FreelancerDashboard() {
                       <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
                       {user?.kyc?.status === 'verified' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                          <CheckCircle size={16} fill="currentColor" />
+                          <CheckCircle size={16} fill="transparent" />
                           Verified
                         </span>
                       )}

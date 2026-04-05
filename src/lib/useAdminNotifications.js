@@ -8,6 +8,12 @@ export const useAdminNotifications = (pollInterval = 30000) => {
   const [lastFetchTime, setLastFetchTime] = useState(0);
 
   const fetchNotifications = useCallback(async () => {
+    // Check if user is logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      return; // Don't fetch if not logged in
+    }
+
     const now = Date.now();
     // Prevent fetching more than once per 10 seconds
     if (now - lastFetchTime < 10000) {
@@ -23,7 +29,7 @@ export const useAdminNotifications = (pollInterval = 30000) => {
         setLastFetchTime(now);
       }
     } catch (error) {
-      if (error.response?.status !== 429) {
+      if (error.response?.status !== 429 && error.response?.status !== 401) {
         console.error('Failed to fetch admin notifications:', error);
       }
     } finally {
@@ -32,6 +38,12 @@ export const useAdminNotifications = (pollInterval = 30000) => {
   }, [lastFetchTime]);
 
   useEffect(() => {
+    // Only start polling if user is logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      return;
+    }
+
     fetchNotifications();
     const interval = setInterval(fetchNotifications, pollInterval);
     return () => clearInterval(interval);

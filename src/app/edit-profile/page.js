@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '../../components/Header';
+import FreelancerHeader from '../../components/FreelancerHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import api from '../../lib/api';
 import { uploadImageToCloudinary } from '../../lib/cloudinary';
@@ -580,7 +580,7 @@ export default function EditProfile() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        <Header />
+        <FreelancerHeader />
         <Toaster position="top-right" />
 
         <div className="pt-24 pb-16 px-4">

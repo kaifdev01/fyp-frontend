@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import SessionWrapper from '../components/SessionWrapper'
 import NotificationToast from '../components/NotificationToast'
+import PageLoader from '../components/PageLoader'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         <SessionWrapper>
+          <PageLoader />
           <NotificationToast />
           {children}
         </SessionWrapper>

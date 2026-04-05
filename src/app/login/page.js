@@ -21,9 +21,15 @@ function LoginForm() {
 
   useEffect(() => {
     const error = searchParams.get("error");
+    const message = searchParams.get("message");
+    
     if (error) {
       toast.error(decodeURIComponent(error));
-      // Optional: Clear the error from URL
+      router.replace("/login");
+    }
+    
+    if (message) {
+      toast.error(decodeURIComponent(message));
       router.replace("/login");
     }
   }, [searchParams, router]);
@@ -74,9 +80,14 @@ function LoginForm() {
         router.push(redirectPath);
       }, 1500);
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Login failed. Please try again."
-      );
+      const data = error.response?.data;
+      if (data?.message === 'Invalid credentials') {
+        toast.error('Incorrect email or password.');
+      } else if (data?.message?.includes('verify')) {
+        toast.error('Please verify your email before logging in.');
+      } else {
+        toast.error(data?.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

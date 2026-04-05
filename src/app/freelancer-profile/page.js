@@ -2,55 +2,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-// import axios from 'axios';
 import api from "../../lib/api";
 import toast, { Toaster } from "react-hot-toast";
 import { X, Upload, Check, ChevronRight, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../../components/Header";
+import { uploadImageToCloudinary } from "../../lib/cloudinary";
 
 const skillSuggestions = [
-  "JavaScript",
-  "React",
-  "Node.js",
-  "Python",
-  "Java",
-  "PHP",
-  "HTML",
-  "CSS",
-  "TypeScript",
-  "Vue.js",
-  "Angular",
-  "Express.js",
-  "MongoDB",
-  "MySQL",
-  "PostgreSQL",
-  "AWS",
-  "Docker",
-  "Git",
-  "GraphQL",
-  "REST API",
-  "UI/UX Design",
-  "Figma",
-  "Adobe Photoshop",
-  "Adobe Illustrator",
-  "Sketch",
-  "WordPress",
-  "Shopify",
-  "Digital Marketing",
-  "SEO",
-  "Content Writing",
-  "Copywriting",
-  "Social Media Marketing",
-  "Data Analysis",
-  "Machine Learning",
-  "AI",
-  "Next Js",
-  "Blockchain",
-  "Mobile Development",
-  "iOS",
-  "Android",
-  "Flutter",
+  "JavaScript", "React", "Node.js", "Python", "Java", "PHP", "HTML", "CSS",
+  "TypeScript", "Vue.js", "Angular", "Express.js", "MongoDB", "MySQL",
+  "PostgreSQL", "AWS", "Docker", "Git", "GraphQL", "REST API", "UI/UX Design",
+  "Figma", "Adobe Photoshop", "Adobe Illustrator", "Sketch", "WordPress",
+  "Shopify", "Digital Marketing", "SEO", "Content Writing", "Copywriting",
+  "Social Media Marketing", "Data Analysis", "Machine Learning", "AI",
+  "Next Js", "Blockchain", "Mobile Development", "iOS", "Android", "Flutter",
   "React Native",
 ];
 
@@ -82,7 +48,6 @@ export default function FreelancerProfile() {
       } else if (token) {
         router.push("/freelancer-dashboard");
       } else {
-        // No authentication, redirect to login
         router.push("/login");
       }
     }
@@ -161,14 +126,29 @@ export default function FreelancerProfile() {
         ? "complete-oauth-profile"
         : "complete-freelancer-profile";
 
-      const response = await api.post(`/api/auth/${endpoint}`, {
-        email: userEmail, // Ensure this fallback works if state is empty but localStorage has it
+      let avatarUrl = "";
+      if (profileData.profileImage) {
+        try {
+          const result = await uploadImageToCloudinary(profileData.profileImage);
+          avatarUrl = result.url;
+        } catch (error) {
+          toast.error("Profile image upload failed");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const payload = {
+        email: userEmail,
         bio: profileData.bio,
-        skills: selectedSkills.join(", "),
+        skills: selectedSkills,
         phone: profileData.phone,
         hourlyRate: profileData.hourlyRate,
+        avatar: avatarUrl,
         role: "freelancer",
-      });
+      };
+
+      const response = await api.post(`/api/auth/${endpoint}`, payload);
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -180,6 +160,7 @@ export default function FreelancerProfile() {
         router.push("/freelancer-dashboard");
       }, 1500);
     } catch (error) {
+      console.error("Error:", error.response?.data);
       if (error.response?.data?.existingRole) {
         const existingRole = error.response.data.existingRole;
         toast.error(`Account exists as ${existingRole}. Redirecting...`);
@@ -465,8 +446,7 @@ export default function FreelancerProfile() {
                         disabled={loading}
                         className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {loading ? "Completing..." : "Complete Profile"}{" "}
-                        <Check size={20} />
+                        {loading ? "Completing..." : "Complete Profile"} <Check size={20} />
                       </button>
                     </div>
                   </motion.form>
@@ -481,11 +461,9 @@ export default function FreelancerProfile() {
                   Live Preview
                 </h3>
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
-                  {/* Banner/Header */}
                   <div className="h-24 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
 
                   <div className="px-8 pb-8">
-                    {/* Avatar */}
                     <div className="relative -mt-12 mb-4 flex justify-between items-end">
                       <div className="w-24 h-24 rounded-2xl bg-white p-1 shadow-lg">
                         <div className="w-full h-full rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -510,7 +488,6 @@ export default function FreelancerProfile() {
                       </div>
                     </div>
 
-                    {/* User Info */}
                     <h2 className="text-2xl font-bold text-gray-900 mb-1">
                       {userEmail ? userEmail.split("@")[0] : "Your Name"}
                     </h2>
@@ -538,16 +515,14 @@ export default function FreelancerProfile() {
                       </div>
                     </div>
 
-                    {/* Bio */}
                     <div className="mb-6">
                       <h4 className="font-bold text-gray-900 mb-2">About</h4>
                       <p className="text-gray-600 text-sm leading-relaxed">
                         {profileData.bio ||
-                          "Your professional bio will appear here. Write something that highlights your experience and personality."}
+                          "Your professional bio will appear here."}
                       </p>
                     </div>
 
-                    {/* Skills */}
                     <div>
                       <h4 className="font-bold text-gray-900 mb-3">Skills</h4>
                       <div className="flex flex-wrap gap-2">

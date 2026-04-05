@@ -104,13 +104,31 @@ export default function Header() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">W</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">WorkDeck</span>
+            <span className="text-xl font-bold text-gray-900">WorkDesk</span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/browse-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Browse Jobs</Link>
-            <Link href="/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
-            <Link href="/how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">How it Works</Link>
+            {isLoggedIn && currentRole === 'freelancer' ? (
+              <>
+                <Link href="/freelancer-dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">Dashboard</Link>
+                <Link href="/browse-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Browse Jobs</Link>
+                <Link href="/my-proposals" className="text-gray-700 hover:text-blue-600 transition-colors">My Proposals</Link>
+                <Link href="/my-projects" className="text-gray-700 hover:text-blue-600 transition-colors">My Projects</Link>
+              </>
+            ) : isLoggedIn && currentRole === 'client' ? (
+              <>
+                <Link href="/client-dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">Dashboard</Link>
+                <Link href="/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
+                <Link href="/post-job" className="text-gray-700 hover:text-blue-600 transition-colors">Post Job</Link>
+                <Link href="/my-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">My Jobs</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/browse-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Browse Jobs</Link>
+                <Link href="/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
+                <Link href="/how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">How it Works</Link>
+              </>
+            )}
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
@@ -203,9 +221,27 @@ export default function Header() {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-gray-200 animate-fade-in">
             <div className="flex flex-col space-y-4">
-              <Link href="/browse-jobs" className="text-gray-700">Browse Jobs</Link>
-              <Link href="/find-freelancers" className="text-gray-700">Find Freelancers</Link>
-              <Link href="/how-it-works" className="text-gray-700">How it Works</Link>
+              {isLoggedIn && currentRole === 'freelancer' ? (
+                <>
+                  <Link href="/freelancer-dashboard" className="text-gray-700">Dashboard</Link>
+                  <Link href="/browse-jobs" className="text-gray-700">Browse Jobs</Link>
+                  <Link href="/my-proposals" className="text-gray-700">My Proposals</Link>
+                  <Link href="/my-projects" className="text-gray-700">My Projects</Link>
+                </>
+              ) : isLoggedIn && currentRole === 'client' ? (
+                <>
+                  <Link href="/client-dashboard" className="text-gray-700">Dashboard</Link>
+                  <Link href="/find-freelancers" className="text-gray-700">Find Freelancers</Link>
+                  <Link href="/post-job" className="text-gray-700">Post Job</Link>
+                  <Link href="/my-jobs" className="text-gray-700">My Jobs</Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/browse-jobs" className="text-gray-700">Browse Jobs</Link>
+                  <Link href="/find-freelancers" className="text-gray-700">Find Freelancers</Link>
+                  <Link href="/how-it-works" className="text-gray-700">How it Works</Link>
+                </>
+              )}
               {isLoggedIn ? (
                 <button
                   onClick={handleSignOut}

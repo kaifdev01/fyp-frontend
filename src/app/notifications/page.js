@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import FreelancerHeader from '../../components/FreelancerHeader';
 import ClientHeader from '../../components/ClientHeader';
@@ -24,7 +24,7 @@ const NOTIFICATION_TYPE_CONFIG = {
   job_match: { label: 'Job Matches', color: 'blue', icon: Briefcase },
 };
 
-export default function NotificationsPage() {
+function NotificationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [notifications, setNotifications] = useState([]);
@@ -334,5 +334,20 @@ export default function NotificationsPage() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading notifications...</p>
+        </div>
+      </div>
+    }>
+      <NotificationsContent />
+    </Suspense>
   );
 }

@@ -14,6 +14,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -42,16 +44,36 @@ function LoginForm() {
     }));
   };
 
+  const handleOtpChange = (index, value) => {
+    const upperValue = value.toUpperCase();
+    
+    if (upperValue.length <= 1) {
+      const newOtp = [...otp];
+      newOtp[index] = upperValue;
+      setOtp(newOtp);
+
+      if (upperValue && index < 5) {
+        document.getElementById(`otp-2fa-${index + 1}`)?.focus();
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const response = await api.post("/api/auth/login", {
-        // Used api.post
         email: formData.email,
         password: formData.password,
       });
+
+      if (response.data.requires2FA) {
+        toast.success("Verification code sent to your email!");
+        setShow2FA(true);
+        setLoading(false);
+        return;
+      }
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -93,6 +115,47 @@ function LoginForm() {
     }
   };
 
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const otpCode = otp.join("").toUpperCase();
+      const response = await api.post("/api/auth/verify-2fa", {
+        email: formData.email,
+        otp: otpCode,
+      });
+
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      toast.success("Login successful!");
+
+      const user = response.data.user;
+      let redirectPath = "/";
+
+      if (user.roles && user.roles.length > 0) {
+        const activeRole = user.primaryRole || user.roles[0];
+
+        if (activeRole === "client") {
+          redirectPath = "/client-dashboard";
+        } else if (activeRole === "freelancer") {
+          redirectPath = "/freelancer-dashboard";
+        }
+      } else {
+        redirectPath = "/role-selection";
+      }
+
+      setTimeout(() => {
+        router.push(redirectPath);
+      }, 1500);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Invalid verification code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = () => {
     localStorage.setItem("authFlow", "login");
     signIn("google", {
@@ -116,7 +179,9 @@ function LoginForm() {
     >
       <Toaster position="top-right" />
 
-      <div className="space-y-4 mb-8">
+      {!show2FA ? (
+        <>
+          <div className="space-y-4 mb-8">
         <button
           type="button"
           onClick={handleGoogleSignIn}
@@ -245,6 +310,61 @@ function LoginForm() {
           Sign Up
         </Link>
       </p>
+        </>
+      ) : (
+        <div className="space-y-6">
+          <div className="text-center mb-6">
+            <p className="text-gray-600">We've sent a 6-digit code to</p>
+            <p className="font-semibold text-gray-900">{formData.email}</p>
+          </div>
+
+          <form onSubmit={handle2FASubmit} className="space-y-8">
+            <div className="flex justify-center gap-3">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-2fa-${index}`}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  style={{ textTransform: 'uppercase' }}
+                  className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all uppercase"
+                  required
+                />
+              ))}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || otp.some((digit) => !digit)}
+              className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? "Verifying..." : "Verify & Login"}
+            </button>
+          </form>
+
+          <div className="flex justify-between items-center pt-6 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => setShow2FA(false)}
+              className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+            >
+              ← Back to login
+            </button>
+            <p className="text-sm text-gray-600">
+              Didn't receive code?
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="text-blue-600 hover:underline font-bold disabled:opacity-50 disabled:cursor-not-allowed ml-1"
+              >
+                Resend
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   );
 }

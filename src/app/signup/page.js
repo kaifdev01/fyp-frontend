@@ -144,12 +144,15 @@ export default function SignUp() {
   };
 
   const handleOtpChange = (index, value) => {
-    if (value.length <= 1) {
+    // Auto-uppercase the input
+    const upperValue = value.toUpperCase();
+    
+    if (upperValue.length <= 1) {
       const newOtp = [...otp];
-      newOtp[index] = value;
+      newOtp[index] = upperValue;
       setOtp(newOtp);
 
-      if (value && index < 5) {
+      if (upperValue && index < 5) {
         document.getElementById(`otp-${index + 1}`).focus();
       }
     }
@@ -160,7 +163,7 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      const otpCode = otp.join("");
+      const otpCode = otp.join("").toUpperCase();
       const response = await api.post("/api/auth/verify-otp", {
         email: formData.email,
         otp: otpCode,

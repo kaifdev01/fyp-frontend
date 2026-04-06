@@ -28,7 +28,8 @@ export default function OTPVerification({
               maxLength="1"
               value={digit}
               onChange={(e) => handleOtpChange(index, e.target.value)}
-              className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              style={{ textTransform: 'uppercase' }}
+              className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all uppercase"
               required
             />
           ))}

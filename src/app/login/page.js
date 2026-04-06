@@ -46,16 +46,30 @@ function LoginForm() {
 
   const handleOtpChange = (index, value) => {
     const upperValue = value.toUpperCase();
-    
     if (upperValue.length <= 1) {
       const newOtp = [...otp];
       newOtp[index] = upperValue;
       setOtp(newOtp);
-
       if (upperValue && index < 5) {
         document.getElementById(`otp-2fa-${index + 1}`)?.focus();
       }
     }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      document.getElementById(`otp-2fa-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").trim().toUpperCase().slice(0, 6);
+    const newOtp = [...otp];
+    pasted.split("").forEach((char, i) => { if (i < 6) newOtp[i] = char; });
+    setOtp(newOtp);
+    const nextEmpty = newOtp.findIndex((d) => !d);
+    document.getElementById(`otp-2fa-${nextEmpty === -1 ? 5 : nextEmpty}`)?.focus();
   };
 
   const handleSubmit = async (e) => {
@@ -328,6 +342,8 @@ function LoginForm() {
                   maxLength="1"
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                  onPaste={index === 0 ? handleOtpPaste : undefined}
                   style={{ textTransform: 'uppercase' }}
                   className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all uppercase"
                   required
@@ -355,7 +371,18 @@ function LoginForm() {
             <p className="text-sm text-gray-600">
               Didn't receive code?
               <button
-                onClick={handleSubmit}
+                type="button"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    await api.post("/api/auth/resend-2fa", { email: formData.email });
+                    toast.success("New code sent to your email!");
+                  } catch (error) {
+                    toast.error("Failed to resend code");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
                 disabled={loading}
                 className="text-blue-600 hover:underline font-bold disabled:opacity-50 disabled:cursor-not-allowed ml-1"
               >

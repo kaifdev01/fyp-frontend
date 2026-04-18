@@ -26,7 +26,8 @@ export default function SavedJobsPage() {
   const fetchSavedJobs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs/saved/my-saved', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
+      const response = await fetch(`${backendUrl}/api/jobs/saved/my-saved`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

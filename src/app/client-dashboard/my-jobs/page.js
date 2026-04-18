@@ -141,7 +141,8 @@ export default function MyJobsPage() {
   const fetchMyJobs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs/client/my-jobs', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
+      const response = await fetch(`${backendUrl}/api/jobs/client/my-jobs`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -158,7 +159,8 @@ export default function MyJobsPage() {
     if (!confirm(`Are you sure you want to delete "${jobTitle}"?`)) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
+      const response = await fetch(`${backendUrl}/api/jobs/${jobId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

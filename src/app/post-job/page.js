@@ -208,7 +208,8 @@ export default function PostJob() {
     setSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
+      const response = await fetch(`${backendUrl}/api/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

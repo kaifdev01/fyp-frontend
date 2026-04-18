@@ -32,11 +32,12 @@ export default function ClientDashboard() {
     try {
       const token = localStorage.getItem('token');
       
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
       const [jobsRes, statsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/jobs/client/my-jobs?limit=3', {
+        fetch(`${backendUrl}/api/jobs/client/my-jobs?limit=3`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('http://localhost:5000/api/jobs/client/stats', {
+        fetch(`${backendUrl}/api/jobs/client/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);

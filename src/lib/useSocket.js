@@ -55,7 +55,8 @@ export const useSocket = () => {
       console.log('👤 User ID from token:', userId);
       console.log('⚠️ Socket will NOT have duplicate notification listener');
       
-      socketInstance = io('http://localhost:5000', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
+      socketInstance = io(backendUrl, {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,

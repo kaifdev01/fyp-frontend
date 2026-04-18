@@ -8,7 +8,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import {
   ArrowLeft, MessageSquare, Eye, Trash2, Clock, CheckCircle,
   XCircle, AlertCircle, Filter, Search, ExternalLink, Star,
-  Calendar, DollarSign, Briefcase, User, MapPin, TrendingUp, Flag
+  Calendar, DollarSign, Briefcase, User, MapPin, TrendingUp, Flag, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

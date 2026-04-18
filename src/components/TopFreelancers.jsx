@@ -47,16 +47,11 @@ export default function TopFreelancers() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-                    <div>
-                        <p className="text-sm font-bold tracking-widest text-blue-600 uppercase mb-2">Elite Talent</p>
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
-                            Hire the <span className="text-blue-600">Top 1%</span>
-                        </h2>
-                    </div>
-                    <button className="hidden md:flex items-center gap-2 text-gray-900 font-bold hover:text-blue-600 transition-colors">
-                        View All Talent <ArrowRight size={20} />
-                    </button>
+                <div className="text-center mb-16">
+                    <p className="text-sm font-bold tracking-widest text-blue-600 uppercase mb-2">Elite Talent</p>
+                    <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
+                        Hire the <span className="text-blue-600">Top 1%</span>
+                    </h2>
                 </div>
 
                 {/* Cards Grid - Switched to 4 columns for larger cards */}
@@ -113,7 +108,7 @@ export default function TopFreelancers() {
                                 </div>
 
                                 {/* "Hire Me" Button - Hidden normally, slides up on hover */}
-                                <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold text-base shadow-xl shadow-blue-200 transform translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 absolute bottom-6 left-3 right-6 w-[calc(100%-1.5rem)]">
+                                <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold text-base shadow-xl shadow-blue-200 transform translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 absolute bottom-6 left-3 right-6 w-[calc(100%-1.6rem)]">
                                     View Profile
                                 </button>
                             </div>

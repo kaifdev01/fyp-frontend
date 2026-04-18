@@ -5,10 +5,11 @@ import FreelancerHeader from '../../components/FreelancerHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import JobCard from '../../components/jobs/JobCard';
 import api from '../../lib/api';
+import { useSocket } from '../../lib/useSocket';
 import toast from 'react-hot-toast';
 import {
   Star, Eye, Calendar, TrendingUp, Edit,
-  ExternalLink, RefreshCw, Zap, CheckCircle, AlertCircle, Clock, XCircle
+  ExternalLink, RefreshCw, Zap, CheckCircle, AlertCircle, Clock, XCircle, Sparkles, Briefcase, Loader2
 } from 'lucide-react';
 
 const MOCK_JOBS = [
@@ -49,6 +50,11 @@ export default function FreelancerDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState('');
+  const [activeTab, setActiveTab] = useState('recommended'); // recommended, all
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [allJobs, setAllJobs] = useState(MOCK_JOBS);
+
+  const socket = useSocket();
 
   useEffect(() => {
     const now = new Date();
@@ -73,22 +79,84 @@ export default function FreelancerDashboard() {
     }
   };
 
+  const fetchRecommendedJobs = async () => {
+    try {
+      const response = await api.get('/api/jobs/recommended/for-me');
+      setRecommendedJobs(response.data.jobs || []);
+    } catch (error) {
+      console.error('Failed to fetch recommended jobs:', error);
+      setRecommendedJobs([]);
+    }
+  };
+
+  const fetchAllJobs = async () => {
+    try {
+      const response = await api.get('/api/jobs/all');
+      setAllJobs(response.data.jobs || []);
+    } catch (error) {
+      console.error('Failed to fetch all jobs:', error);
+      setAllJobs([]);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    fetchRecommendedJobs();
+    fetchAllJobs();
   }, []);
+
+  // Real-time Socket.IO listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewJob = (newJob) => {
+      console.log('📢 New job received in dashboard:', newJob);
+      setAllJobs(prevJobs => [newJob, ...prevJobs]);
+    };
+
+    const handleJobUpdated = (updatedJob) => {
+      console.log('📝 Job updated in dashboard:', updatedJob);
+      setRecommendedJobs(prevJobs => 
+        prevJobs.map(job => job._id === updatedJob._id ? updatedJob : job)
+      );
+      setAllJobs(prevJobs => 
+        prevJobs.map(job => job._id === updatedJob._id ? updatedJob : job)
+      );
+    };
+
+    const handleJobDeleted = ({ jobId }) => {
+      console.log('🗑️ Job deleted in dashboard:', jobId);
+      setRecommendedJobs(prevJobs => prevJobs.filter(job => job._id !== jobId));
+      setAllJobs(prevJobs => prevJobs.filter(job => job._id !== jobId));
+    };
+
+    socket.on('job:created', handleNewJob);
+    socket.on('job:updated', handleJobUpdated);
+    socket.on('job:deleted', handleJobDeleted);
+
+    return () => {
+      socket.off('job:created', handleNewJob);
+      socket.off('job:updated', handleJobUpdated);
+      socket.off('job:deleted', handleJobDeleted);
+    };
+  }, [socket]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchDashboardData();
+    await fetchRecommendedJobs();
+    await fetchAllJobs();
   };
+
+  const displayJobs = activeTab === 'recommended' ? recommendedJobs : allJobs;
 
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <RefreshCw className="animate-spin mx-auto mb-4 text-blue-600" size={32} />
-            <p className="text-gray-600">Loading dashboard...</p>
+        <div className="min-h-screen bg-gray-50">
+          <FreelancerHeader />
+          <div className="pt-24 pb-16 px-4 flex items-center justify-center">
+            <Loader2 className="animate-spin text-blue-600" size={48} />
           </div>
         </div>
       </ProtectedRoute>
@@ -226,227 +294,288 @@ export default function FreelancerDashboard() {
                 </div>
               </div>
 
+
+
               {/* Recommended Jobs */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Recommended Jobs</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Jobs For You</h2>
                   <Link href="/browse-jobs" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
                     View all <ExternalLink size={14} />
                   </Link>
                 </div>
+
+                {/* Tabs */}
+                <div className="flex items-center gap-2 mb-4 border-b border-gray-200">
+                  <button
+                    onClick={() => setActiveTab('recommended')}
+                    className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${activeTab === 'recommended'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} />
+                      AI Recommended
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('all')}
+                    className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${activeTab === 'all'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Briefcase size={16} />
+                      All Jobs
+                    </div>
+                  </button>
+                </div>
+
                 <div className="space-y-4">
-                  {MOCK_JOBS.map(job => (
-                    <JobCard key={job._id} job={job} />
-                  ))}
+                  {displayJobs.length > 0 ? (
+                    displayJobs.map(job => (
+                      <div key={job._id} className="relative">
+                        {job.matchScore && activeTab === 'recommended' && (
+                          <div className="absolute -top-2 -right-2 z-10">
+                            <div className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${job.matchScore >= 90 ? 'bg-green-500 text-white' :
+                              job.matchScore >= 75 ? 'bg-blue-500 text-white' :
+                                job.matchScore >= 60 ? 'bg-yellow-500 text-white' :
+                                  'bg-gray-500 text-white'
+                              }`}>
+                              {job.matchScore}% Match
+                            </div>
+                          </div>
+                        )}
+                        <JobCard job={job} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                      <Briefcase size={32} className="text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">
+                        {activeTab === 'recommended'
+                          ? 'No recommended jobs yet. Complete your profile to get personalized recommendations.'
+                          : 'No jobs available at the moment.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Right Sidebar - Enhanced Profile Card */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* KYC Status Card - Only show if not verified */}
-              {user?.kyc?.status !== 'verified' && (
-                <div className={`${kycInfo.bgColor} border-2 ${kycInfo.borderColor} rounded-2xl p-6`}>
-                  <div className="flex items-start gap-3 mb-4">
-                    <IconComponent size={24} className={kycInfo.textColor} />
-                    <div className="flex-1">
-                      <h3 className={`font-bold ${kycInfo.textColor}`}>{kycInfo.title}</h3>
-                      <p className={`text-sm ${kycInfo.textColor} opacity-80 mt-1`}>{kycInfo.message}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${kycInfo.badgeColor}`}>
-                      {user?.kyc?.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : 'Not Submitted'}
-                    </span>
-                    {kycInfo.action && (
-                      <Link
-                        href={kycInfo.actionLink}
-                        className={`text-sm font-semibold ${kycInfo.textColor} hover:underline`}
-                      >
-                        {kycInfo.action} →
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Profile Card */}
-              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="h-20 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                <div className="px-6 pb-6">
-                  <div className="relative -mt-10 mb-4 flex justify-center">
-                    <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
-                      <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {user?.avatar ? (
-                          <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-2xl font-bold text-gray-500">{user?.name?.[0]}</span>
-                        )}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24 space-y-6 max-h-[calc(100vh-7rem)] overflow-y-auto [&::-webkit-scrollbar]:w-[5px]
+  [&::-webkit-scrollbar-thumb]:bg-gradient-to-b
+  [&::-webkit-scrollbar-thumb]:from-purple-500
+  [&::-webkit-scrollbar-thumb]:to-pink-500
+  [&::-webkit-scrollbar-thumb]:rounded-full  scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent pr-2">
+                {/* KYC Status Card - Only show if not verified */}
+                {user?.kyc?.status !== 'verified' && (
+                  <div className={`${kycInfo.bgColor} border-2 ${kycInfo.borderColor} rounded-2xl p-6`}>
+                    <div className="flex items-start gap-3 mb-4">
+                      <IconComponent size={24} className={kycInfo.textColor} />
+                      <div className="flex-1">
+                        <h3 className={`font-bold ${kycInfo.textColor}`}>{kycInfo.title}</h3>
+                        <p className={`text-sm ${kycInfo.textColor} opacity-80 mt-1`}>{kycInfo.message}</p>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="text-center mb-6">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
-                      {user?.kyc?.status === 'verified' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                          <CheckCircle size={16} fill="transparent" />
-                          Verified
-                        </span>
+                    <div className="flex items-center justify-between">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${kycInfo.badgeColor}`}>
+                        {user?.kyc?.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : 'Not Submitted'}
+                      </span>
+                      {kycInfo.action && (
+                        <Link
+                          href={kycInfo.actionLink}
+                          className={`text-sm font-semibold ${kycInfo.textColor} hover:underline`}
+                        >
+                          {kycInfo.action} →
+                        </Link>
                       )}
                     </div>
-                    <p className="text-blue-600 font-medium text-sm mb-2">Freelancer</p>
-                    {user?.intro && (
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{user.intro}</p>
-                    )}
-                    <div className="flex justify-center items-center gap-1 text-yellow-500">
-                      <Star size={16} fill="currentColor" />
-                      <span className="font-bold text-gray-700">{user?.rating || 0.0}</span>
-                      <span className="text-gray-400 text-xs">({user?.completedProjects || 0} reviews)</span>
-                    </div>
                   </div>
+                )}
 
-                  {/* Profile Completion */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-700">Profile Completion</span>
-                      <span className="text-sm font-bold text-blue-600">{analytics?.profileCompletion || 0}%</span>
+                {/* Profile Card */}
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                  <div className="h-20 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                  <div className="px-6 pb-6">
+                    <div className="relative -mt-10 mb-4 flex justify-center">
+                      <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
+                        <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-2xl font-bold text-gray-500">{user?.name?.[0]}</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${analytics?.profileCompletion || 0}%` }}
-                      ></div>
-                    </div>
-                    {(analytics?.profileCompletion || 0) < 100 && (
-                      <p className="text-xs text-gray-500 mt-2">Complete your profile to get more opportunities</p>
-                    )}
-                  </div>
 
-                  {/* Skills */}
-                  {user?.skills?.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Top Skills</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {user.skills.slice(0, 4).map((skill, index) => (
-                          <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                            {skill}
-                          </span>
-                        ))}
-                        {user.skills.length > 4 && (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                            +{user.skills.length - 4} more
+                    <div className="text-center mb-6">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
+                        {user?.kyc?.status === 'verified' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                            <CheckCircle size={16} fill="transparent" />
+                            Verified
                           </span>
                         )}
                       </div>
+                      <p className="text-blue-600 font-medium text-sm mb-2">Freelancer</p>
+                      {user?.intro && (
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{user.intro}</p>
+                      )}
+                      <div className="flex justify-center items-center gap-1 text-yellow-500">
+                        <Star size={16} fill="currentColor" />
+                        <span className="font-bold text-gray-700">{user?.rating || 0.0}</span>
+                        <span className="text-gray-400 text-xs">({user?.completedProjects || 0} reviews)</span>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-500">Hourly Rate</span>
-                      <span className="font-bold text-gray-900">${user?.hourlyRate || 0}/hr</span>
+                    {/* Profile Completion */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">Profile Completion</span>
+                        <span className="text-sm font-bold text-blue-600">{analytics?.profileCompletion || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${analytics?.profileCompletion || 0}%` }}
+                        ></div>
+                      </div>
+                      {(analytics?.profileCompletion || 0) < 100 && (
+                        <p className="text-xs text-gray-500 mt-2">Complete your profile to get more opportunities</p>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-500">Location</span>
-                      <span className="font-bold text-gray-900">{user?.location || 'Remote'}</span>
+
+                    {/* Skills */}
+                    {user?.skills?.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Top Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {user.skills.slice(0, 4).map((skill, index) => (
+                            <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                              {skill}
+                            </span>
+                          ))}
+                          {user.skills.length > 4 && (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                              +{user.skills.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                        <span className="text-sm text-gray-500">Hourly Rate</span>
+                        <span className="font-bold text-gray-900">${user?.hourlyRate || 0}/hr</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                        <span className="text-sm text-gray-500">Location</span>
+                        <span className="font-bold text-gray-900">{user?.location || 'Remote'}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                        <span className="text-sm text-gray-500">Total Earnings</span>
+                        <span className="font-bold text-green-600">${user?.totalEarnings || 0}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-500">Total Earnings</span>
-                      <span className="font-bold text-green-600">${user?.totalEarnings || 0}</span>
+
+                    <div className="space-y-3">
+                      <Link
+                        href="/edit-profile"
+                        className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Edit size={16} />
+                        Edit Profile
+                      </Link>
+
+                      <Link
+                        href={`/public-profile/${user?.id}`}
+                        className="w-full border border-blue-600 text-blue-600 py-2.5 rounded-xl font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <ExternalLink size={16} />
+                        View Public Profile
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Management Section */}
+                <div className="bg-white rounded-2xl shadow-sm border border-blue-600 p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Profile Management</h3>
+
+                  {/* Profile Views */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Eye size={16} className="text-blue-600" />
+                        <span className="text-sm font-medium text-gray-700">Profile Views</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900">{analytics?.weeklyProfileViews || 0}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">This week</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <TrendingUp size={12} className="text-green-500" />
+                      <span className="text-xs text-green-600 font-medium">Total: {analytics?.profileViews || 0} views</span>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  {/* Availability Status */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-green-600" />
+                        <span className="text-sm font-medium text-gray-700">Availability</span>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${analytics?.isAvailable
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                        }`}>
+                        {analytics?.isAvailable ? 'Available' : 'Busy'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {analytics?.isAvailable ? 'Ready for new projects' : 'Currently unavailable'}
+                    </p>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="space-y-2">
                     <Link
                       href="/edit-profile"
-                      className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                      className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      <Edit size={16} />
-                      Edit Profile
+                      <span className="text-sm font-medium text-gray-700">Update Profile</span>
+                      <ExternalLink size={14} className="text-gray-400" />
                     </Link>
-
                     <Link
-                      href={`/public-profile/${user?.id}`}
-                      className="w-full border border-blue-600 text-blue-600 py-2.5 rounded-xl font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                      href="/edit-profile#portfolio"
+                      className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                     >
-                      <ExternalLink size={16} />
-                      View Public Profile
+                      <span className="text-sm font-medium text-gray-700">Manage Portfolio</span>
+                      <ExternalLink size={14} className="text-gray-400" />
+                    </Link>
+                    <Link
+                      href="/availability"
+                      className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-700">Set Availability</span>
+                      <ExternalLink size={14} className="text-gray-400" />
+                    </Link>
+                    <Link
+                      href="/freelancer-dashboard/proposals"
+                      className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-700">View My Proposals</span>
+                      <ExternalLink size={14} className="text-gray-400" />
                     </Link>
                   </div>
-                </div>
-              </div>
-
-              {/* Profile Management Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-blue-600 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Profile Management</h3>
-
-                {/* Profile Views */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Eye size={16} className="text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700">Profile Views</span>
-                    </div>
-                    <span className="text-lg font-bold text-gray-900">{analytics?.weeklyProfileViews || 0}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">This week</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <TrendingUp size={12} className="text-green-500" />
-                    <span className="text-xs text-green-600 font-medium">Total: {analytics?.profileViews || 0} views</span>
-                  </div>
-                </div>
-
-                {/* Availability Status */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={16} className="text-green-600" />
-                      <span className="text-sm font-medium text-gray-700">Availability</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${analytics?.isAvailable
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
-                      }`}>
-                      {analytics?.isAvailable ? 'Available' : 'Busy'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {analytics?.isAvailable ? 'Ready for new projects' : 'Currently unavailable'}
-                  </p>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="space-y-2">
-                  <Link
-                    href="/edit-profile"
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">Update Profile</span>
-                    <ExternalLink size={14} className="text-gray-400" />
-                  </Link>
-                  <Link
-                    href="/edit-profile#portfolio"
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">Manage Portfolio</span>
-                    <ExternalLink size={14} className="text-gray-400" />
-                  </Link>
-                  <Link
-                    href="/availability"
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">Set Availability</span>
-                    <ExternalLink size={14} className="text-gray-400" />
-                  </Link>
-                  <Link
-                    href="/freelancer-dashboard/proposals"
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">View My Proposals</span>
-                    <ExternalLink size={14} className="text-gray-400" />
-                  </Link>
                 </div>
               </div>
             </div>

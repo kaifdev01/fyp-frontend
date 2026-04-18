@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useNotifications } from "../lib/useNotifications";
+import { useSocket } from "../lib/useSocket";
 import {
   Bell, MessageSquare, User, Settings, LogOut,
-  Briefcase, DollarSign, Star, ChevronDown, Search, FileText, CheckCircle, Flag
+  Briefcase, DollarSign, Star, ChevronDown, Search, FileText, CheckCircle, Flag, Sparkles, Bookmark
 } from "lucide-react";
 
 const NAV_LINKS = [
@@ -14,8 +15,10 @@ const NAV_LINKS = [
 ];
 
 const JOBS_MENU = [
+  { href: '/recommended-jobs', label: 'AI Recommendations', icon: Sparkles },
   { href: '/browse-jobs', label: 'Browse Jobs', icon: Search },
   { href: '/freelancer-dashboard/proposals', label: 'My Proposals', icon: FileText },
+  { href: '/saved-jobs', label: 'Saved Jobs', icon: Bookmark },
 ];
 
 const ACCOUNT_MENU = [
@@ -29,7 +32,8 @@ export default function FreelancerHeader() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showJobsMenu, setShowJobsMenu] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
-  const { unreadCount } = useNotifications(30000);
+  const { unreadCount, fetchNotifications } = useNotifications(30000);
+  const socket = useSocket();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -43,6 +47,18 @@ export default function FreelancerHeader() {
       }
     }
   }, []);
+
+  // Listen for real-time notifications to update badge
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = () => {
+      fetchNotifications(true);
+    };
+
+    socket.on('notification', handleNotification);
+    return () => socket.off('notification', handleNotification);
+  }, [socket, fetchNotifications]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -139,8 +155,8 @@ export default function FreelancerHeader() {
             <Link href="/notifications" className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors hidden sm:block">
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Link>
@@ -155,7 +171,9 @@ export default function FreelancerHeader() {
             <Link href="/notifications" className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors sm:hidden">
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </Link>
 

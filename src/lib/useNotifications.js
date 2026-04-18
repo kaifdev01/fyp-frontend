@@ -1,31 +1,57 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../lib/api';
 
+const CLIENT_NOTIFICATION_TYPES = ['job_posted', 'job_deleted', 'new_proposal', 'proposal_submitted', 'milestone_completed', 'payment_requested'];
+const FREELANCER_NOTIFICATION_TYPES = ['job_match', 'proposal_accepted', 'proposal_rejected', 'payment_received', 'payment_released'];
+
+const getCurrentRoleFromURL = () => {
+  if (typeof window === 'undefined') return 'freelancer';
+  const path = window.location.pathname;
+  
+  if (path.includes('/client-dashboard') || 
+      path.includes('/post-job') || 
+      path.includes('/my-jobs') ||
+      path.includes('/edit-job') ||
+      path.includes('/client-profile')) {
+    return 'client';
+  }
+  
+  return 'freelancer';
+};
+
+const filterNotificationsByRole = (notifications, currentRole) => {
+  return notifications.filter(notification => {
+    if (currentRole === 'client') {
+      return CLIENT_NOTIFICATION_TYPES.includes(notification.type);
+    } else {
+      return FREELANCER_NOTIFICATION_TYPES.includes(notification.type);
+    }
+  });
+};
+
 export const useNotifications = (pollInterval = 30000) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState(0);
 
-  const fetchNotifications = useCallback(async () => {
-    // Check if user is logged in
+  const fetchNotifications = useCallback(async (force = false) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) {
-      return; // Don't fetch if not logged in
-    }
+    if (!token) return;
 
     const now = Date.now();
-    // Prevent fetching more than once per 10 seconds
-    if (now - lastFetchTime < 10000) {
-      return;
-    }
+    if (!force && now - lastFetchTime < 500) return;
 
     try {
       setLoading(true);
-      const response = await api.get('/api/notifications?limit=20');
+      const response = await api.get('/api/notifications?limit=50');
       if (response.data.success) {
-        setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount);
+        const allNotifications = response.data.notifications;
+        const currentRole = getCurrentRoleFromURL();
+        const filteredNotifications = filterNotificationsByRole(allNotifications, currentRole);
+        
+        setNotifications(filteredNotifications);
+        setUnreadCount(filteredNotifications.filter(n => !n.read).length);
         setLastFetchTime(now);
       }
     } catch (error) {
@@ -38,14 +64,12 @@ export const useNotifications = (pollInterval = 30000) => {
   }, [lastFetchTime]);
 
   useEffect(() => {
-    // Only start polling if user is logged in
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, pollInterval);
+    fetchNotifications(true);
+    const interval = setInterval(() => fetchNotifications(false), pollInterval);
+
     return () => clearInterval(interval);
   }, [fetchNotifications, pollInterval]);
 

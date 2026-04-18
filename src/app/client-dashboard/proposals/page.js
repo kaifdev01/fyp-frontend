@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import ClientHeader from '../../../components/ClientHeader';
 import ProtectedRoute from '../../../components/ProtectedRoute';
-import { MessageSquare, Search, Filter, CheckCircle, Clock, XCircle, Star, DollarSign, User, Calendar, Eye, X } from 'lucide-react';
+import { MessageSquare, Search, Filter, CheckCircle, Clock, XCircle, Star, DollarSign, User, Calendar, Eye, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 const MOCK_PROPOSALS = [

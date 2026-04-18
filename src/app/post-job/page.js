@@ -4,31 +4,142 @@ import { useRouter } from 'next/navigation';
 import ClientHeader from '../../components/ClientHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import JobCard from '../../components/jobs/JobCard';
+import { toast } from 'react-hot-toast';
+import { notificationEvents } from '../../lib/notificationEvents';
+import Link from 'next/link';
 import {
   ChevronRight, ChevronLeft, Check, Briefcase, DollarSign,
   Clock, Users, AlertCircle, X, Plus, Trash2, Loader2
 } from 'lucide-react';
+import RichTextEditor from '../../components/RichTextEditor';
 
-const CATEGORIES = [
-  'Web Development', 'Mobile Development', 'UI/UX Design',
-  'Graphic Design', 'Digital Marketing', 'Content Writing',
-  'Data Science', 'AI & Machine Learning', 'Video & Animation'
+const SKILL_SUGGESTIONS = [
+  // Programming Languages
+  'JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Swift', 'Kotlin',
+  'TypeScript', 'Rust', 'Scala', 'Perl', 'R', 'MATLAB', 'Dart', 'Objective-C', 'Shell', 'PowerShell',
+
+  // Web Development
+  'HTML', 'CSS', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js', 'Svelte', 'jQuery',
+  'Bootstrap', 'Tailwind CSS', 'Material UI', 'Sass', 'Less', 'Webpack', 'Vite', 'Gulp',
+  'Node.js', 'Express.js', 'Django', 'Flask', 'FastAPI', 'Laravel', 'Symfony', 'CodeIgniter',
+  'Ruby on Rails', 'ASP.NET', 'Spring Boot', 'Gatsby', 'Hugo', 'Jekyll',
+
+  // Mobile Development
+  'React Native', 'Flutter', 'iOS', 'Android', 'Xamarin', 'Ionic', 'Cordova', 'SwiftUI',
+  'Jetpack Compose', 'Kotlin Multiplatform', 'NativeScript',
+
+  // Databases
+  'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'Microsoft SQL Server',
+  'MariaDB', 'Cassandra', 'DynamoDB', 'Firebase', 'Supabase', 'CouchDB', 'Neo4j',
+  'Elasticsearch', 'InfluxDB', 'TimescaleDB',
+
+  // Cloud & DevOps
+  'AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes', 'Jenkins', 'GitLab CI', 'GitHub Actions',
+  'CircleCI', 'Travis CI', 'Terraform', 'Ansible', 'Chef', 'Puppet', 'Vagrant', 'Nginx',
+  'Apache', 'Linux', 'Ubuntu', 'CentOS', 'Debian',
+
+  // Version Control
+  'Git', 'GitHub', 'GitLab', 'Bitbucket', 'SVN', 'Mercurial',
+
+  // API & Integration
+  'REST API', 'GraphQL', 'gRPC', 'WebSocket', 'SOAP', 'Microservices', 'API Gateway',
+  'Postman', 'Swagger', 'OpenAPI',
+
+  // Testing
+  'Jest', 'Mocha', 'Chai', 'Cypress', 'Selenium', 'Playwright', 'Puppeteer', 'JUnit',
+  'PyTest', 'PHPUnit', 'TestNG', 'Jasmine', 'Karma',
+
+  // Design & Creative
+  'UI/UX Design', 'Figma', 'Adobe XD', 'Sketch', 'InVision', 'Adobe Photoshop',
+  'Adobe Illustrator', 'Adobe InDesign', 'CorelDRAW', 'Canva', 'Blender', '3D Modeling',
+  'After Effects', 'Premiere Pro', 'Final Cut Pro', 'DaVinci Resolve', 'Maya', 'Cinema 4D',
+  'Procreate', 'Affinity Designer', 'Affinity Photo',
+
+  // CMS & E-commerce
+  'WordPress', 'Shopify', 'WooCommerce', 'Magento', 'Drupal', 'Joomla', 'Wix', 'Squarespace',
+  'PrestaShop', 'BigCommerce', 'OpenCart', 'Contentful', 'Strapi', 'Sanity',
+
+  // Data Science & AI
+  'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Keras', 'Scikit-learn',
+  'Pandas', 'NumPy', 'Matplotlib', 'Seaborn', 'OpenCV', 'NLTK', 'SpaCy', 'Hugging Face',
+  'Data Analysis', 'Data Visualization', 'Tableau', 'Power BI', 'Looker', 'Apache Spark',
+  'Hadoop', 'Jupyter', 'Google Colab', 'Computer Vision', 'NLP', 'Neural Networks',
+
+  // Blockchain & Web3
+  'Blockchain', 'Ethereum', 'Solidity', 'Smart Contracts', 'Web3.js', 'Ethers.js',
+  'Hardhat', 'Truffle', 'NFT', 'DeFi', 'Cryptocurrency', 'Bitcoin',
+
+  // Marketing & SEO
+  'Digital Marketing', 'SEO', 'SEM', 'Google Analytics', 'Google Ads', 'Facebook Ads',
+  'Instagram Marketing', 'LinkedIn Marketing', 'Email Marketing', 'Content Marketing',
+  'Social Media Marketing', 'Influencer Marketing', 'Affiliate Marketing', 'Growth Hacking',
+  'Marketing Automation', 'HubSpot', 'Mailchimp', 'Hootsuite', 'Buffer',
+
+  // Writing & Content
+  'Content Writing', 'Copywriting', 'Technical Writing', 'Creative Writing', 'Blog Writing',
+  'Article Writing', 'Ghostwriting', 'Proofreading', 'Editing', 'Translation',
+  'Transcription', 'Resume Writing', 'Grant Writing',
+
+  // Business & Management
+  'Project Management', 'Agile', 'Scrum', 'Kanban', 'JIRA', 'Trello', 'Asana', 'Monday.com',
+  'Business Analysis', 'Product Management', 'Strategic Planning', 'Financial Analysis',
+  'Market Research', 'Business Development', 'Sales', 'Customer Service',
+
+  // Accounting & Finance
+  'Accounting', 'Bookkeeping', 'QuickBooks', 'Xero', 'SAP', 'Financial Modeling',
+  'Tax Preparation', 'Payroll', 'Budgeting', 'Forecasting', 'Excel', 'Financial Reporting',
+
+  // Legal
+  'Legal Research', 'Contract Law', 'Intellectual Property', 'Corporate Law',
+  'Legal Writing', 'Compliance', 'Paralegal',
+
+  // Video & Animation
+  'Video Editing', 'Motion Graphics', '2D Animation', '3D Animation', 'Whiteboard Animation',
+  'Explainer Videos', 'Video Production', 'Cinematography', 'Color Grading',
+
+  // Audio & Music
+  'Audio Editing', 'Music Production', 'Sound Design', 'Voice Over', 'Podcast Editing',
+  'Mixing', 'Mastering', 'Logic Pro', 'Ableton Live', 'Pro Tools', 'FL Studio',
+
+  // Game Development
+  'Unity', 'Unreal Engine', 'Game Design', 'Game Development', 'C# for Unity',
+  'Godot', 'GameMaker', 'Level Design', 'Character Design',
+
+  // Cybersecurity
+  'Cybersecurity', 'Penetration Testing', 'Ethical Hacking', 'Network Security',
+  'Information Security', 'CISSP', 'CEH', 'Security Auditing',
+
+  // Networking
+  'Networking', 'TCP/IP', 'DNS', 'VPN', 'Firewall', 'Load Balancing', 'CDN',
+  'Cisco', 'CCNA', 'Network Administration',
+
+  // Other Technical Skills
+  'Automation', 'Scripting', 'System Administration', 'Technical Support', 'IT Support',
+  'Help Desk', 'Troubleshooting', 'Documentation', 'Quality Assurance', 'Bug Tracking',
+  'Performance Optimization', 'Code Review', 'Debugging',
+
+  // Specialized
+  'IoT', 'Embedded Systems', 'Arduino', 'Raspberry Pi', 'Robotics', 'AR/VR',
+  'Virtual Reality', 'Augmented Reality', 'CAD', 'AutoCAD', 'SolidWorks',
+  'Electrical Engineering', 'Mechanical Engineering', 'Civil Engineering',
 ];
 
-const SUBCATEGORIES = {
-  'Web Development': ['Frontend', 'Backend', 'Full Stack', 'WordPress'],
-  'Mobile Development': ['iOS', 'Android', 'React Native', 'Flutter'],
-  'UI/UX Design': ['Web Design', 'App Design', 'Prototyping'],
-  'Graphic Design': ['Logo Design', 'Branding', 'Illustration'],
-  'Digital Marketing': ['SEO', 'Social Media', 'Content Marketing'],
-  'Content Writing': ['Blog Posts', 'Copywriting', 'Technical Writing'],
-  'Data Science': ['Data Analysis', 'Machine Learning', 'Visualization'],
-  'AI & Machine Learning': ['NLP', 'Computer Vision', 'Model Training'],
-  'Video & Animation': ['Video Editing', '2D Animation', '3D Animation']
-};
+const CATEGORIES = [
+  'Web Development', 'Mobile Development', 'Design & Creative',
+  'Writing & Translation', 'Marketing & Sales', 'Admin & Customer Support',
+  'Data Science & Analytics', 'Engineering & Architecture', 'Legal',
+  'Accounting & Finance', 'Other'
+];
 
-const EXPERIENCE_LEVELS = ['Entry', 'Intermediate', 'Expert'];
-const DURATIONS = ['Short Term (< 1 month)', 'Medium Term (1-3 months)', 'Long Term (3+ months)'];
+const EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'expert'];
+const DURATIONS = [
+  { label: 'Less than a week', value: 'less-than-week' },
+  { label: '1-2 weeks', value: '1-2-weeks' },
+  { label: '2-4 weeks', value: '2-4-weeks' },
+  { label: '1-3 months', value: '1-3-months' },
+  { label: '3-6 months', value: '3-6-months' },
+  { label: 'More than 6 months', value: 'more-than-6-months' }
+];
 
 export default function PostJob() {
   const router = useRouter();
@@ -36,22 +147,18 @@ export default function PostJob() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const [showSkillSuggestions, setShowSkillSuggestions] = useState(false);
+
   const [formData, setFormData] = useState({
     title: '',
     category: '',
-    subcategory: '',
     description: '',
     skills: [],
     skillInput: '',
     budgetType: 'fixed',
-    budgetMin: '',
-    budgetMax: '',
-    hourlyMin: '',
-    hourlyMax: '',
+    budgetAmount: '',
     duration: '',
     experienceLevel: '',
-    visibility: 'public',
-    attachments: [],
     questions: [],
     questionInput: '',
   });
@@ -61,15 +168,17 @@ export default function PostJob() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const addSkill = () => {
-    if (formData.skillInput.trim() && !formData.skills.includes(formData.skillInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...prev.skills, prev.skillInput.trim()],
-        skillInput: ''
-      }));
+  const addSkill = (skill) => {
+    const s = skill || formData.skillInput.trim();
+    if (s && !formData.skills.includes(s)) {
+      setFormData(prev => ({ ...prev, skills: [...prev.skills, s], skillInput: '' }));
+      setShowSkillSuggestions(false);
     }
   };
+
+  const filteredSkillSuggestions = SKILL_SUGGESTIONS.filter(
+    s => s.toLowerCase().includes(formData.skillInput.toLowerCase()) && !formData.skills.includes(s)
+  );
 
   const removeSkill = (skill) => {
     setFormData(prev => ({
@@ -97,15 +206,48 @@ export default function PostJob() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setSubmitting(false);
-    setSubmitted(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          skills: formData.skills,
+          budget: {
+            type: formData.budgetType,
+            amount: parseFloat(formData.budgetAmount),
+            currency: 'USD'
+          },
+          duration: formData.duration,
+          experienceLevel: formData.experienceLevel,
+          screeningQuestions: formData.questions
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('🎉 Job posted successfully! It\'s now live for freelancers.');
+        notificationEvents.refresh();
+        setSubmitted(true);
+      } else {
+        toast.error(data.message || 'Failed to post job');
+      }
+    } catch (error) {
+      toast.error('Error posting job');
+      console.error('Error:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const isStep1Valid = formData.title && formData.category && formData.subcategory && formData.description && formData.skills.length > 0;
-  const isStep2Valid = formData.budgetType === 'fixed' 
-    ? (formData.budgetMin && formData.budgetMax) 
-    : (formData.hourlyMin && formData.hourlyMax);
+  const isStep1Valid = formData.title && formData.category && formData.description && formData.skills.length > 0;
+  const isStep2Valid = formData.budgetAmount && parseFloat(formData.budgetAmount) > 0;
   const isStep3Valid = formData.duration && formData.experienceLevel;
 
   const previewJob = {
@@ -113,17 +255,14 @@ export default function PostJob() {
     title: formData.title || 'Your Job Title',
     description: formData.description || 'Your job description will appear here...',
     skills: formData.skills,
-    budgetType: formData.budgetType,
-    budgetMin: formData.budgetMin,
-    budgetMax: formData.budgetMax,
-    hourlyMin: formData.hourlyMin,
-    hourlyMax: formData.hourlyMax,
-    duration: formData.duration === 'Short Term (< 1 month)' ? 'short' : formData.duration === 'Medium Term (1-3 months)' ? 'medium' : 'long',
+    budget: {
+      type: formData.budgetType,
+      amount: parseFloat(formData.budgetAmount) || 0,
+      currency: 'USD'
+    },
+    duration: formData.duration,
     experienceLevel: formData.experienceLevel,
     proposalCount: 0,
-    isNew: true,
-    isFeatured: false,
-    isSaved: false,
     createdAt: new Date(),
     client: { name: 'Your Company', rating: 0, isVerified: false },
   };
@@ -141,12 +280,12 @@ export default function PostJob() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Job Posted!</h2>
               <p className="text-gray-500 mb-6">Your job is now live and freelancers can start submitting proposals.</p>
               <div className="space-y-3">
-                <button onClick={() => router.push('/my-jobs')} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors">
+                <Link href="/client-dashboard/my-jobs" className="block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors text-center">
                   View My Jobs
-                </button>
-                <button onClick={() => router.push('/client-dashboard')} className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                </Link>
+                <Link href="/client-dashboard" className="block w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-center">
                   Back to Dashboard
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -187,45 +326,48 @@ export default function PostJob() {
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                        <select name="category" value={formData.category} onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white">
-                          <option value="">Select category</option>
-                          {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Subcategory *</label>
-                        <select name="subcategory" value={formData.subcategory} onChange={handleInputChange}
-                          disabled={!formData.category}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white disabled:bg-gray-50">
-                          <option value="">Select subcategory</option>
-                          {formData.category && SUBCATEGORIES[formData.category]?.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                        </select>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                      <select name="category" value={formData.category} onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white">
+                        <option value="">Select category</option>
+                        {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Job Description *</label>
-                      <textarea name="description" value={formData.description} onChange={handleInputChange}
-                        placeholder="Describe the job in detail. Include project overview, responsibilities, requirements, and timeline..."
-                        rows={8}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all resize-none" />
-                      <p className="text-xs text-gray-400 mt-1">{formData.description.length} characters</p>
+                      <RichTextEditor
+                        value={formData.description}
+                        onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                      />
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Required Skills *</label>
-                      <div className="flex gap-2 mb-3">
-                        <input type="text" value={formData.skillInput} onChange={(e) => setFormData(prev => ({ ...prev, skillInput: e.target.value }))}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                          placeholder="Add a skill and press Enter"
-                          className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
-                        <button onClick={addSkill} className="px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors">
-                          Add
-                        </button>
+                      <div className="relative mb-3">
+                        <div className="flex gap-2">
+                          <input type="text" value={formData.skillInput}
+                            onChange={(e) => { setFormData(prev => ({ ...prev, skillInput: e.target.value })); setShowSkillSuggestions(e.target.value.length > 0); }}
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                            onFocus={() => setShowSkillSuggestions(formData.skillInput.length > 0)}
+                            onBlur={() => setTimeout(() => setShowSkillSuggestions(false), 150)}
+                            placeholder="Add a skill and press Enter"
+                            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
+                          <button onClick={() => addSkill()} className="px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors">
+                            Add
+                          </button>
+                        </div>
+                        {showSkillSuggestions && filteredSkillSuggestions.length > 0 && (
+                          <div className="absolute z-10 w-full bg-white border border-gray-100 rounded-xl mt-1 max-h-48 overflow-y-auto shadow-xl">
+                            {filteredSkillSuggestions.slice(0, 8).map(skill => (
+                              <div key={skill} onMouseDown={() => addSkill(skill)}
+                                className="px-4 py-2 hover:bg-green-50 hover:text-green-700 cursor-pointer text-gray-700 text-sm transition-colors">
+                                {skill}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {formData.skills.map(skill => (
@@ -249,48 +391,24 @@ export default function PostJob() {
                       <div className="flex gap-3">
                         {['fixed', 'hourly'].map(type => (
                           <button key={type} onClick={() => setFormData(prev => ({ ...prev, budgetType: type }))}
-                            className={`flex-1 py-3 rounded-xl font-semibold text-sm border-2 transition-all capitalize ${
-                              formData.budgetType === type
-                                ? 'border-green-600 bg-green-50 text-green-700'
-                                : 'border-gray-200 text-gray-600 hover:border-green-300'
-                            }`}>
+                            className={`flex-1 py-3 rounded-xl font-semibold text-sm border-2 transition-all capitalize ${formData.budgetType === type
+                              ? 'border-green-600 bg-green-50 text-green-700'
+                              : 'border-gray-200 text-gray-600 hover:border-green-300'
+                              }`}>
                             {type === 'fixed' ? 'Fixed Price' : 'Hourly Rate'}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    {formData.budgetType === 'fixed' ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Minimum Budget ($) *</label>
-                          <input type="number" name="budgetMin" value={formData.budgetMin} onChange={handleInputChange}
-                            placeholder="1000"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Maximum Budget ($) *</label>
-                          <input type="number" name="budgetMax" value={formData.budgetMax} onChange={handleInputChange}
-                            placeholder="5000"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Minimum Rate ($/hr) *</label>
-                          <input type="number" name="hourlyMin" value={formData.hourlyMin} onChange={handleInputChange}
-                            placeholder="25"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">Maximum Rate ($/hr) *</label>
-                          <input type="number" name="hourlyMax" value={formData.hourlyMax} onChange={handleInputChange}
-                            placeholder="100"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
-                        </div>
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        {formData.budgetType === 'fixed' ? 'Budget Amount ($) *' : 'Hourly Rate ($/hr) *'}
+                      </label>
+                      <input type="number" name="budgetAmount" value={formData.budgetAmount} onChange={handleInputChange}
+                        placeholder={formData.budgetType === 'fixed' ? '5000' : '50'}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all" />
+                    </div>
                   </div>
                 )}
 
@@ -302,7 +420,7 @@ export default function PostJob() {
                       <select name="duration" value={formData.duration} onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white">
                         <option value="">Select duration</option>
-                        {DURATIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                        {DURATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                       </select>
                     </div>
 
@@ -311,16 +429,7 @@ export default function PostJob() {
                       <select name="experienceLevel" value={formData.experienceLevel} onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white">
                         <option value="">Select level</option>
-                        {EXPERIENCE_LEVELS.map(level => <option key={level} value={level}>{level}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Visibility</label>
-                      <select name="visibility" value={formData.visibility} onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition-all bg-white">
-                        <option value="public">Public - All freelancers can see</option>
-                        <option value="private">Private - Invite only</option>
+                        {EXPERIENCE_LEVELS.map(level => <option key={level} value={level}>{level.charAt(0).toUpperCase() + level.slice(1)}</option>)}
                       </select>
                     </div>
 
@@ -360,30 +469,27 @@ export default function PostJob() {
                       </div>
                       <div className="flex justify-between py-3 border-b border-gray-100">
                         <span className="text-gray-500">Category</span>
-                        <span className="font-semibold text-gray-900">{formData.category} - {formData.subcategory}</span>
+                        <span className="font-semibold text-gray-900">{formData.category}</span>
                       </div>
                       <div className="flex justify-between py-3 border-b border-gray-100">
                         <span className="text-gray-500">Budget</span>
                         <span className="font-semibold text-gray-900">
-                          {formData.budgetType === 'fixed' ? `$${formData.budgetMin} - $${formData.budgetMax}` : `$${formData.hourlyMin} - $${formData.hourlyMax}/hr`}
+                          {formData.budgetType === 'fixed' ? `$${formData.budgetAmount}` : `$${formData.budgetAmount}/hr`}
                         </span>
                       </div>
                       <div className="flex justify-between py-3 border-b border-gray-100">
                         <span className="text-gray-500">Duration</span>
-                        <span className="font-semibold text-gray-900">{formData.duration}</span>
+                        <span className="font-semibold text-gray-900">{DURATIONS.find(d => d.value === formData.duration)?.label || formData.duration}</span>
                       </div>
                       <div className="flex justify-between py-3 border-b border-gray-100">
                         <span className="text-gray-500">Experience Level</span>
-                        <span className="font-semibold text-gray-900">{formData.experienceLevel}</span>
+                        <span className="font-semibold text-gray-900">{formData.experienceLevel.charAt(0).toUpperCase() + formData.experienceLevel.slice(1)}</span>
                       </div>
                       <div className="flex justify-between py-3 border-b border-gray-100">
                         <span className="text-gray-500">Skills Required</span>
                         <span className="font-semibold text-gray-900">{formData.skills.length} skills</span>
                       </div>
-                      <div className="flex justify-between py-3">
-                        <span className="text-gray-500">Visibility</span>
-                        <span className="font-semibold text-gray-900 capitalize">{formData.visibility}</span>
-                      </div>
+
                     </div>
                     <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-xl">
                       <p className="text-sm text-green-800">

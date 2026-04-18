@@ -5,6 +5,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import JobCard from '../../components/jobs/JobCard';
 import { Bookmark, Search, Filter, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import api from '../../lib/api';
 
 const CATEGORIES = [
   'Web Development', 'Mobile Development', 'Design & Creative',
@@ -25,20 +26,10 @@ export default function SavedJobsPage() {
 
   const fetchSavedJobs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs/saved/my-saved`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setJobs(data.jobs || []);
-      } else {
-        toast.error(data.message || 'Failed to fetch saved jobs');
-      }
+      const response = await api.get('/api/jobs/saved/my-saved');
+      setJobs(response.data.jobs || []);
     } catch (error) {
-      toast.error('Error fetching saved jobs');
-      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch saved jobs');
     } finally {
       setLoading(false);
     }

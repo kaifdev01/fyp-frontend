@@ -5,6 +5,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import { Plus, Briefcase, Users, BarChart, MessageSquare, Clock, CheckCircle, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import api from '../../lib/api';
 
 export default function ClientDashboard() {
   const [user, setUser] = useState(null);
@@ -30,28 +31,12 @@ export default function ClientDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
       const [jobsRes, statsRes] = await Promise.all([
-        fetch(`${backendUrl}/api/jobs/client/my-jobs?limit=3`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${backendUrl}/api/jobs/client/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        api.get('/api/jobs/client/my-jobs?limit=3'),
+        api.get('/api/jobs/client/stats')
       ]);
-
-      const jobsData = await jobsRes.json();
-      const statsData = await statsRes.json();
-
-      if (jobsRes.ok) {
-        setActiveJobs(jobsData.jobs.filter(j => j.status === 'open') || []);
-      }
-
-      if (statsRes.ok) {
-        setStats(statsData.stats);
-      }
+      setActiveJobs(jobsRes.data.jobs.filter(j => j.status === 'open') || []);
+      setStats(statsRes.data.stats);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {

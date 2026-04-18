@@ -6,6 +6,7 @@ import ProtectedRoute from '../../../components/ProtectedRoute';
 import RichTextEditor from '../../../components/RichTextEditor';
 import { toast } from 'react-hot-toast';
 import { ChevronLeft, Loader2, X } from 'lucide-react';
+import api from '../../../lib/api';
 
 const CATEGORIES = [
   'Web Development', 'Mobile Development', 'Design & Creative',
@@ -162,33 +163,22 @@ export default function EditJob() {
 
   const fetchJob = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs/${jobId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await api.get(`/api/jobs/${jobId}`);
+      const job = response.data.job;
+      setFormData({
+        title: job.title,
+        category: job.category,
+        description: job.description,
+        skills: job.skills || [],
+        skillInput: '',
+        budgetType: job.budget.type,
+        budgetAmount: job.budget.amount.toString(),
+        duration: job.duration,
+        experienceLevel: job.experienceLevel,
+        status: job.status
       });
-      const data = await response.json();
-      if (response.ok) {
-        const job = data.job;
-        setFormData({
-          title: job.title,
-          category: job.category,
-          description: job.description,
-          skills: job.skills || [],
-          skillInput: '',
-          budgetType: job.budget.type,
-          budgetAmount: job.budget.amount.toString(),
-          duration: job.duration,
-          experienceLevel: job.experienceLevel,
-          status: job.status
-        });
-      } else {
-        toast.error(data.message || 'Failed to fetch job');
-        router.push('/client-dashboard/my-jobs');
-      }
     } catch (error) {
-      toast.error('Error fetching job');
-      console.error('Error:', error);
+      toast.error(error.response?.data?.message || 'Failed to fetch job');
       router.push('/client-dashboard/my-jobs');
     } finally {
       setLoading(false);
@@ -245,28 +235,13 @@ export default function EditJob() {
     console.log('📤 Sending update payload:', payload);
 
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs/${jobId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      console.log('📥 Server response:', data);
-
-      if (response.ok) {
+      const response = await api.put(`/api/jobs/${jobId}`, payload);
+      if (response.data.success) {
         toast.success('Job updated successfully!');
         router.push('/client-dashboard/my-jobs');
-      } else {
-        toast.error(data.message || 'Failed to update job');
       }
     } catch (error) {
-      toast.error('Error updating job');
+      toast.error(error.response?.data?.message || 'Failed to update job');
       console.error('Error:', error);
     } finally {
       setSubmitting(false);

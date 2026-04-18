@@ -1,22 +1,65 @@
 'use client';
 import Link from 'next/link';
 import { MapPin, Clock, DollarSign, Bookmark, BookmarkCheck, Star, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
+import toast from 'react-hot-toast';
 
 const EXPERIENCE_COLORS = {
-  Entry: 'bg-green-100 text-green-700',
-  Intermediate: 'bg-blue-100 text-blue-700',
-  Expert: 'bg-purple-100 text-purple-700',
+  beginner: 'bg-green-100 text-green-700',
+  intermediate: 'bg-blue-100 text-blue-700',
+  expert: 'bg-purple-100 text-purple-700',
 };
 
 const DURATION_LABELS = {
-  short: 'Short Term',
-  medium: 'Medium Term',
-  long: 'Long Term',
+  'less-than-week': 'Less than a week',
+  '1-2-weeks': '1-2 weeks',
+  '2-4-weeks': '2-4 weeks',
+  '1-3-months': '1-3 months',
+  '3-6-months': '3-6 months',
+  'more-than-6-months': '6+ months',
 };
 
-export default function JobCard({ job }) {
-  const [saved, setSaved] = useState(job.isSaved || false);
+export default function JobCard({ job, onUnsave }) {
+  // Check if current user has saved this job
+  const getUserId = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id || payload.userId || payload._id;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const userId = getUserId();
+  const isSavedByUser = job.savedBy?.includes(userId) || job.isSaved || false;
+  const [saved, setSaved] = useState(isSavedByUser);
+
+  // Update saved state when job changes
+  useEffect(() => {
+    const isCurrentlySaved = job.savedBy?.includes(userId) || job.isSaved || false;
+    setSaved(isCurrentlySaved);
+  }, [job.savedBy, job.isSaved, userId]);
+
+  const handleSaveJob = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const response = await api.post(`/api/jobs/${job._id}/save`);
+      setSaved(response.data.saved);
+      toast.success(response.data.saved ? 'Job saved!' : 'Job unsaved');
+
+      if (!response.data.saved && onUnsave) {
+        onUnsave(job._id);
+      }
+    } catch (error) {
+      console.error('Failed to save job:', error);
+      toast.error('Failed to save job');
+    }
+  };
 
   const timeAgo = (date) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -49,7 +92,7 @@ export default function JobCard({ job }) {
           </Link>
         </div>
         <button
-          onClick={() => setSaved(!saved)}
+          onClick={handleSaveJob}
           className="ml-4 p-2 text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
         >
           {saved ? <BookmarkCheck size={20} className="text-blue-600" /> : <Bookmark size={20} />}
@@ -58,25 +101,33 @@ export default function JobCard({ job }) {
 
       {/* Client Info */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-          {job.client?.name?.[0] || 'C'}
-        </div>
-        <span className="text-sm text-gray-600 font-medium">{job.client?.name || 'Anonymous Client'}</span>
-        {job.client?.rating > 0 && (
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Star size={12} fill="currentColor" className="text-yellow-400" />
-            <span>{job.client.rating}</span>
+        {job.clientId?.avatar || job.client?.avatar ? (
+          <img
+            src={job.clientId?.avatar || job.client?.avatar}
+            alt={job.clientId?.name || job.client?.name || 'Client'}
+            className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {(job.clientId?.name || job.client?.name)?.[0] || 'C'}
           </div>
         )}
-        {job.client?.isVerified && (
+        <span className="text-sm text-gray-600 font-medium">{job.clientId?.name || job.client?.name || 'Anonymous Client'}</span>
+        {(job.clientId?.rating || job.client?.rating) > 0 && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Star size={12} fill="currentColor" className="text-yellow-400" />
+            <span>{job.clientId?.rating || job.client?.rating}</span>
+          </div>
+        )}
+        {(job.clientId?.isVerified || job.client?.isVerified) && (
           <span className="text-xs text-blue-600 font-medium">✓ Verified</span>
         )}
       </div>
 
       {/* Description */}
-      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">
-        {job.description}
-      </p>
+      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4"
+        dangerouslySetInnerHTML={{ __html: job.description }}
+      />
 
       {/* Skills */}
       {job.skills?.length > 0 && (
@@ -98,9 +149,9 @@ export default function JobCard({ job }) {
           {/* Budget */}
           <div className="flex items-center gap-1 font-semibold text-gray-800">
             <DollarSign size={15} className="text-green-500" />
-            {job.budgetType === 'fixed'
-              ? `$${job.budgetMin} - $${job.budgetMax}`
-              : `$${job.hourlyMin} - $${job.hourlyMax}/hr`}
+            {job.budget?.type === 'fixed'
+              ? ` ${job.budget.amount}`
+              : `${job.budget?.amount}/hr`}
           </div>
 
           {/* Duration */}
@@ -110,12 +161,12 @@ export default function JobCard({ job }) {
           </div>
 
           {/* Location */}
-          {job.location && (
+          {/* {job.location && (
             <div className="flex items-center gap-1">
               <MapPin size={14} />
               <span>{job.location}</span>
             </div>
-          )}
+          )} */}
 
           {/* Proposals count */}
           <div className="flex items-center gap-1">
@@ -126,7 +177,7 @@ export default function JobCard({ job }) {
 
         {/* Experience Badge */}
         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${EXPERIENCE_COLORS[job.experienceLevel] || 'bg-gray-100 text-gray-600'}`}>
-          {job.experienceLevel}
+          {job.experienceLevel ? job.experienceLevel.charAt(0).toUpperCase() + job.experienceLevel.slice(1) : 'Not specified'}
         </span>
       </div>
     </div>

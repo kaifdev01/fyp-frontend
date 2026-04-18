@@ -22,6 +22,8 @@ const NOTIFICATION_TYPE_CONFIG = {
   new_message: { label: 'Messages', color: 'blue', icon: MessageSquare },
   payment_received: { label: 'Payments', color: 'green', icon: DollarSign },
   job_match: { label: 'Job Matches', color: 'blue', icon: Briefcase },
+  job_posted: { label: 'Job Posted', color: 'green', icon: Briefcase },
+  job_deleted: { label: 'Job Deleted', color: 'red', icon: Briefcase },
 };
 
 function NotificationsContent() {
@@ -40,20 +42,32 @@ function NotificationsContent() {
     const detectedRole = roleParam || user.primaryRole || 'freelancer';
     setUserRole(detectedRole);
     fetchNotifications();
+
+    // Poll every 15 seconds for new notifications
+    const interval = setInterval(() => fetchNotifications(true), 15000);
+
+    // Refetch when tab becomes visible again
+    const handleVisibility = () => { if (document.visibilityState === 'visible') fetchNotifications(true); };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [searchParams]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await api.get('/api/notifications?limit=100');
       if (response.data.success) {
         setNotifications(response.data.notifications);
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      toast.error('Failed to load notifications');
+      if (!silent) toast.error('Failed to load notifications');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -64,10 +78,36 @@ function NotificationsContent() {
     const matchesRead = filterRead === 'all' ||
       (filterRead === 'unread' && !notif.read) ||
       (filterRead === 'read' && notif.read);
-    return matchesSearch && matchesType && matchesRead;
+    
+    // Filter by role context
+    const clientNotificationTypes = ['job_posted', 'job_deleted', 'new_proposal', 'proposal_submitted', 'milestone_completed', 'payment_requested'];
+    const freelancerNotificationTypes = ['job_match', 'proposal_accepted', 'proposal_rejected', 'payment_received', 'payment_released'];
+    
+    let matchesRole = true;
+    if (userRole === 'client') {
+      matchesRole = clientNotificationTypes.includes(notif.type);
+    } else {
+      matchesRole = freelancerNotificationTypes.includes(notif.type);
+    }
+    
+    return matchesSearch && matchesType && matchesRead && matchesRole;
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Count notifications for the other role
+  const clientNotificationTypes = ['job_posted', 'job_deleted', 'new_proposal', 'proposal_submitted', 'milestone_completed', 'payment_requested'];
+  const freelancerNotificationTypes = ['job_match', 'proposal_accepted', 'proposal_rejected', 'payment_received', 'payment_released'];
+  
+  const otherRoleNotifications = notifications.filter(notif => {
+    if (userRole === 'client') {
+      return freelancerNotificationTypes.includes(notif.type);
+    } else {
+      return clientNotificationTypes.includes(notif.type);
+    }
+  });
+  
+  const otherRoleUnreadCount = otherRoleNotifications.filter(n => !n.read).length;
+
+  const unreadCount = filteredNotifications.filter(n => !n.read).length;
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -100,10 +140,21 @@ function NotificationsContent() {
     }
   };
 
-  const handleDeleteAll = () => {
-    if (confirm('Are you sure you want to delete all notifications?')) {
+  const handleDeleteAll = async () => {
+    if (!confirm('Are you sure you want to delete all notifications?')) return;
+    
+    try {
+      // Delete all notifications from backend
+      const deletePromises = notifications.map(n => 
+        api.delete(`/api/notifications/${n._id}`)
+      );
+      
+      await Promise.all(deletePromises);
       setNotifications([]);
       toast.success('All notifications deleted');
+    } catch (error) {
+      console.error('Failed to delete all notifications:', error);
+      toast.error('Failed to delete all notifications');
     }
   };
 
@@ -302,32 +353,34 @@ function NotificationsContent() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-                <Bell size={48} className="mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">No notifications</h3>
-                <p className="text-gray-600">
-                  {searchQuery || filterType !== 'all' || filterRead !== 'all'
-                    ? 'Try adjusting your filters'
-                    : 'You\'re all caught up! Check back later for updates.'}
-                </p>
-              </div>
-            )}
-
-            {/* Notification Stats */}
-            {notifications.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                  <p className="text-gray-600 text-sm mb-1">Total Notifications</p>
-                  <p className="text-2xl font-bold text-gray-900">{notifications.length}</p>
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+                  <Bell size={48} className="mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">No notifications</h3>
+                  <p className="text-gray-600">
+                    {searchQuery || filterType !== 'all' || filterRead !== 'all'
+                      ? 'Try adjusting your filters'
+                      : 'You\'re all caught up! Check back later for updates.'}
+                  </p>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                  <p className="text-gray-600 text-sm mb-1">Unread</p>
-                  <p className="text-2xl font-bold text-blue-600">{unreadCount}</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                  <p className="text-gray-600 text-sm mb-1">Read</p>
-                  <p className="text-2xl font-bold text-green-600">{notifications.length - unreadCount}</p>
-                </div>
+                
+                {otherRoleUnreadCount > 0 && (
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
+                    <Bell size={32} className="mx-auto mb-3 text-blue-600" />
+                    <h3 className="text-lg font-bold text-blue-900 mb-2">
+                      You have {otherRoleUnreadCount} notification{otherRoleUnreadCount !== 1 ? 's' : ''} on {userRole === 'client' ? 'Freelancer' : 'Client'} side
+                    </h3>
+                    <p className="text-blue-700 mb-4">
+                      Switch to your {userRole === 'client' ? 'freelancer' : 'client'} dashboard to view them
+                    </p>
+                    <button
+                      onClick={() => router.push(userRole === 'client' ? '/freelancer-dashboard' : '/client-dashboard')}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                    >
+                      Switch to {userRole === 'client' ? 'Freelancer' : 'Client'} Dashboard
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

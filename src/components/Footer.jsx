@@ -35,18 +35,18 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">For Freelancers</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/find-work" className="hover:text-white transition-colors">Find Work</Link></li>
-              <li><Link href="/how-to-freelance" className="hover:text-white transition-colors">How to Freelance</Link></li>
-              <li><Link href="/success-stories" className="hover:text-white transition-colors">Success Stories</Link></li>
+              <li><Link href="/browse-jobs" className="hover:text-white transition-colors">Find Work</Link></li>
+              <li><Link href="/signup" className="hover:text-white transition-colors">Join as Freelancer</Link></li>
+              <li><Link href="/saved-jobs" className="hover:text-white transition-colors">Saved Jobs</Link></li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold mb-4">For Clients</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/find-talent" className="hover:text-white transition-colors">Find Talent</Link></li>
-              <li><Link href="/post-project" className="hover:text-white transition-colors">Post a Project</Link></li>
-              <li><Link href="/enterprise" className="hover:text-white transition-colors">Enterprise</Link></li>
+              <li><Link href="/post-job" className="hover:text-white transition-colors">Post a Job</Link></li>
+              <li><Link href="/signup" className="hover:text-white transition-colors">Join as Client</Link></li>
+              <li><Link href="/browse-jobs" className="hover:text-white transition-colors">Browse Talent</Link></li>
             </ul>
           </div>
         </div>
@@ -56,13 +56,13 @@ export default function Footer() {
             © 2026 WorkDesk. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
               Terms of Service
             </Link>
-            <Link href="/support" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
               Support
             </Link>
           </div>

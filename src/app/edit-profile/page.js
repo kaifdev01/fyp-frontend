@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FreelancerHeader from '../../components/FreelancerHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import SkillsAutocomplete from '../../components/SkillsAutocomplete';
 import api from '../../lib/api';
 import { uploadImageToCloudinary } from '../../lib/cloudinary';
 import toast, { Toaster } from 'react-hot-toast';
@@ -814,91 +815,12 @@ export default function EditProfile() {
               {/* Skills */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Skills & Expertise</h2>
-
-                <div className="space-y-6">
-                  <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={newSkill}
-                        onChange={handleSkillInputChange}
-                        placeholder="Add a skill (e.g., React, Design, Marketing)"
-                        className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none w-full focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                        onBlur={() => setTimeout(() => setShowSkillSuggestions(false), 200)}
-                      />
-
-                      {/* Skill Suggestions Dropdown */}
-                      {showSkillSuggestions && skillSuggestions.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-10 mt-1 max-h-40 overflow-y-auto">
-                          {skillSuggestions.map((skill, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => addSkill(skill)}
-                              className="w-full text-left px-4 py-2 hover:bg-blue-50 first:rounded-t-xl last:rounded-b-xl transition-colors text-sm"
-                            >
-                              {skill}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addSkill()}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 font-semibold"
-                    >
-                      <Plus size={16} />
-                      Add
-                    </button>
-                  </div>
-
-                  {/* Popular Skills */}
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-3">Popular Skills:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {popularSkills.slice(0, 10).map((skill) => (
-                        <button
-                          key={skill}
-                          type="button"
-                          onClick={() => {
-                            if (!formData.skills.includes(skill)) {
-                              setFormData(prev => ({ ...prev, skills: [...prev.skills, skill] }));
-                            }
-                          }}
-                          className="px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                          disabled={formData.skills.includes(skill)}
-                        >
-                          {skill}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {formData.skills.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-3">Your Skills:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.skills.map((skill, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-sm font-medium shadow-md"
-                          >
-                            {skill}
-                            <button
-                              type="button"
-                              onClick={() => removeSkill(skill)}
-                              className="hover:bg-white/20 rounded-full p-1 transition-colors"
-                            >
-                              <X size={12} />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <SkillsAutocomplete
+                  selectedSkills={formData.skills}
+                  onSkillsChange={(skills) => setFormData(prev => ({ ...prev, skills }))}
+                  placeholder="Search from 500+ professional skills..."
+                  maxSkills={20}
+                />
               </div>
 
               {/* Languages */}

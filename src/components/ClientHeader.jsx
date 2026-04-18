@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useNotifications } from "../lib/useNotifications";
+import { useSocket } from "../lib/useSocket";
 import {
   Bell, MessageSquare, User, Settings, LogOut,
   Plus, DollarSign, ChevronDown, Briefcase, Users, Eye, CreditCard, FileText, BarChart3, HelpCircle, Flag
@@ -28,6 +30,8 @@ const TEAM_MENU = [
 export default function ClientHeader() {
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const { unreadCount, fetchNotifications } = useNotifications(30000);
+  const socket = useSocket();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -37,6 +41,18 @@ export default function ClientHeader() {
       try { setUser(JSON.parse(userData)); } catch { localStorage.removeItem("user"); }
     }
   }, []);
+
+  // Listen for real-time notifications to update badge
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = () => {
+      fetchNotifications(true);
+    };
+
+    socket.on('notification', handleNotification);
+    return () => socket.off('notification', handleNotification);
+  }, [socket, fetchNotifications]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -130,7 +146,11 @@ export default function ClientHeader() {
             <Link href="/notifications?role=client"
               className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell size={20} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">0</span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
             <Link href="/client-dashboard/support"
               className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">

@@ -7,7 +7,7 @@ export default function CTA() {
   return (
     <section className="py-24 bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -25,10 +25,10 @@ export default function CTA() {
             <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto">
               Join thousands of businesses who trust WorkDeck to get their projects done
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <Link href="/signup">
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-4 bg-white text-gray-900 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors shadow-lg flex items-center gap-2"
@@ -36,17 +36,17 @@ export default function CTA() {
                   Get Started <ArrowRight size={20} />
                 </motion.button>
               </Link>
-              <Link href="/freelancers">
-                <motion.button 
+              <Link href="/browse-jobs">
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-4 bg-transparent border-2 border-white/20 text-white rounded-xl font-bold text-lg hover:bg-white/10 transition-colors"
                 >
-                  Browse Talent
+                  Browse Jobs
                 </motion.button>
               </Link>
             </div>
-            
+
             <p className="text-gray-400 text-sm mt-8">No credit card required for sign up</p>
           </div>
         </motion.div>

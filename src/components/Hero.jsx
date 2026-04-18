@@ -80,13 +80,13 @@ export default function Hero() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.6 }}
-                            className="flex flex-wrap gap-3"
+                            className="flex flex-wrap items-center gap-3"
                         >
-                            <span className="text-sm font-semibold text-gray-500 mr-2">Popular:</span>
+                            <span className="text-sm font-semibold text-gray-700">Popular:</span>
                             {['Web Design', 'React JS', 'Logo Design', 'AI Services'].map((tag, i) => (
                                 <button
                                     key={tag}
-                                    className="px-4 py-1.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                                    className="px-5 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full text-sm font-semibold text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md cursor-pointer"
                                 >
                                     {tag}
                                 </button>

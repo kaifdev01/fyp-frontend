@@ -2,76 +2,15 @@
 import { useState, useEffect } from 'react';
 import ClientHeader from '../../components/ClientHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
-import { Plus, Briefcase, Users, BarChart, MessageSquare, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Plus, Briefcase, Users, BarChart, MessageSquare, Clock, CheckCircle, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-
-const MOCK_ACTIVE_JOBS = [
-  {
-    id: 1,
-    title: 'React Dashboard Development',
-    status: 'active',
-    proposals: 12,
-    hired: 1,
-    budget: 2500,
-    postedDate: '2024-01-15',
-    deadline: '2024-02-15'
-  },
-  {
-    id: 2,
-    title: 'Mobile App UI Design',
-    status: 'active',
-    proposals: 8,
-    hired: 0,
-    budget: 1500,
-    postedDate: '2024-01-18',
-    deadline: '2024-02-18'
-  },
-  {
-    id: 3,
-    title: 'Backend API Development',
-    status: 'active',
-    proposals: 15,
-    hired: 2,
-    budget: 5000,
-    postedDate: '2024-01-10',
-    deadline: '2024-03-10'
-  }
-];
-
-const MOCK_PROPOSALS = [
-  {
-    id: 1,
-    freelancerName: 'John Developer',
-    jobTitle: 'React Dashboard Development',
-    bidAmount: 2200,
-    rating: 4.8,
-    status: 'pending',
-    submittedDate: '2024-01-20'
-  },
-  {
-    id: 2,
-    freelancerName: 'Sarah Designer',
-    jobTitle: 'Mobile App UI Design',
-    bidAmount: 1400,
-    rating: 4.9,
-    status: 'pending',
-    submittedDate: '2024-01-21'
-  },
-  {
-    id: 3,
-    freelancerName: 'Mike Backend',
-    jobTitle: 'Backend API Development',
-    bidAmount: 4800,
-    rating: 4.7,
-    status: 'accepted',
-    submittedDate: '2024-01-19'
-  }
-];
+import { toast } from 'react-hot-toast';
 
 export default function ClientDashboard() {
   const [user, setUser] = useState(null);
-  const [activeJobs, setActiveJobs] = useState(MOCK_ACTIVE_JOBS);
-  const [proposals, setProposals] = useState(MOCK_PROPOSALS);
+  const [activeJobs, setActiveJobs] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState('');
 
   useEffect(() => {
@@ -80,22 +19,60 @@ export default function ClientDashboard() {
       setUser(JSON.parse(userData));
     }
 
-    // Set current date and time
     const now = new Date();
     const options = { weekday: 'long', month: 'long', day: 'numeric' };
     const dateStr = now.toLocaleDateString('en-US', options);
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     setCurrentDateTime(`${dateStr}\n${timeStr}`);
+
+    fetchDashboardData();
   }, []);
 
-  const stats = {
-    activeJobs: activeJobs.length,
-    totalProposals: proposals.length,
-    hiredFreelancers: activeJobs.reduce((sum, job) => sum + job.hired, 0),
-    totalSpent: activeJobs.reduce((sum, job) => sum + job.budget, 0)
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const [jobsRes, statsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/jobs/client/my-jobs?limit=3', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/jobs/client/stats', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      const jobsData = await jobsRes.json();
+      const statsData = await statsRes.json();
+
+      if (jobsRes.ok) {
+        setActiveJobs(jobsData.jobs.filter(j => j.status === 'open') || []);
+      }
+
+      if (statsRes.ok) {
+        setStats(statsData.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const pendingProposals = proposals.filter(p => p.status === 'pending').length;
+  const getStatusCount = (status) => {
+    if (!stats?.byStatus) return 0;
+    const statusData = stats.byStatus.find(s => s._id === status);
+    return statusData?.count || 0;
+  };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-green-50 flex items-center justify-center">
+          <Loader2 className="animate-spin text-green-600" size={48} />
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -128,7 +105,7 @@ export default function ClientDashboard() {
                   </div>
                   <span className="text-xs font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">Active</span>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">{stats.activeJobs}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">{getStatusCount('open')}</h3>
                 <p className="text-gray-600 text-sm mt-1">Active Jobs</p>
               </div>
 
@@ -137,32 +114,29 @@ export default function ClientDashboard() {
                   <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
                     <MessageSquare size={24} />
                   </div>
-                  {pendingProposals > 0 && (
-                    <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-3 py-1 rounded-full">{pendingProposals} New</span>
-                  )}
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">{stats.totalProposals}</h3>
+                <h3 className="text-3xl font-bold text-gray-900">{stats?.totalProposals || 0}</h3>
                 <p className="text-gray-600 text-sm mt-1">Total Proposals</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-                    <Users size={24} />
+                    <CheckCircle size={24} />
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">{stats.hiredFreelancers}</h3>
-                <p className="text-gray-600 text-sm mt-1">Hired Freelancers</p>
+                <h3 className="text-3xl font-bold text-gray-900">{getStatusCount('completed')}</h3>
+                <p className="text-gray-600 text-sm mt-1">Completed Jobs</p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
-                    <TrendingUp size={24} />
+                    <Briefcase size={24} />
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">${stats.totalSpent.toLocaleString()}</h3>
-                <p className="text-gray-600 text-sm mt-1">Total Budget</p>
+                <h3 className="text-3xl font-bold text-gray-900">{stats?.total || 0}</h3>
+                <p className="text-gray-600 text-sm mt-1">Total Jobs</p>
               </div>
             </div>
 
@@ -184,12 +158,12 @@ export default function ClientDashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {activeJobs.map((job) => (
-                      <div key={job.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
+                    {activeJobs.length > 0 ? activeJobs.map((job) => (
+                      <div key={job._id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h3 className="font-bold text-gray-900 text-lg">{job.title}</h3>
-                            <p className="text-sm text-gray-500 mt-1">Posted {new Date(job.postedDate).toLocaleDateString()}</p>
+                            <p className="text-sm text-gray-500 mt-1">Posted {new Date(job.createdAt).toLocaleDateString()}</p>
                           </div>
                           <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                             Active
@@ -199,80 +173,41 @@ export default function ClientDashboard() {
                         <div className="grid grid-cols-3 gap-4 mb-4 pt-4 border-t border-gray-100">
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Proposals</p>
-                            <p className="text-lg font-bold text-gray-900">{job.proposals}</p>
+                            <p className="text-lg font-bold text-gray-900">{job.proposalCount || 0}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Hired</p>
-                            <p className="text-lg font-bold text-gray-900">{job.hired}</p>
+                            <p className="text-lg font-bold text-gray-900">{job.hiredCount || 0}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500 mb-1">Budget</p>
-                            <p className="text-lg font-bold text-green-600">${job.budget.toLocaleString()}</p>
+                            <p className="text-lg font-bold text-green-600">${job.budget.amount.toLocaleString()}</p>
                           </div>
                         </div>
 
                         <div className="flex gap-2">
-                          <Link href="/client-dashboard/proposals">
+                          <Link href={`/client-dashboard/proposals?jobId=${job._id}`}>
                             <button className="flex-1 px-4 py-2 bg-green-50 text-green-600 rounded-lg font-semibold hover:bg-green-100 transition-colors text-sm">
                               View Proposals
                             </button>
                           </Link>
-                          <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-sm">
-                            Edit Job
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recent Proposals */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <MessageSquare className="text-purple-600" size={24} />
-                      Recent Proposals
-                    </h2>
-                    <Link href="/client-dashboard/proposals">
-                      <button className="text-green-600 hover:text-green-700 font-semibold text-sm">View All →</button>
-                    </Link>
-                  </div>
-
-                  <div className="space-y-4">
-                    {proposals.slice(0, 3).map((proposal) => (
-                      <div key={proposal.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-900">{proposal.freelancerName}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{proposal.jobTitle}</p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${proposal.status === 'accepted'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                            {proposal.status === 'accepted' ? 'Accepted' : 'Pending'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <p className="text-xs text-gray-500">Bid Amount</p>
-                              <p className="font-bold text-gray-900">${proposal.bidAmount.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Rating</p>
-                              <p className="font-bold text-gray-900">⭐ {proposal.rating}</p>
-                            </div>
-                          </div>
-                          <Link href="/client-dashboard/proposals">
-                            <button className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm">
-                              View
+                          <Link href={`/edit-job/${job._id}`}>
+                            <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-sm">
+                              Edit Job
                             </button>
                           </Link>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No active jobs yet</p>
+                        <Link href="/post-job">
+                          <button className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700">
+                            Post Your First Job
+                          </button>
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

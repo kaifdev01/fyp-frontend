@@ -3,15 +3,27 @@ import { useState, useEffect, useCallback } from 'react';
 import FreelancerHeader from '../../components/FreelancerHeader';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import JobCard from '../../components/jobs/JobCard';
+import api from '../../lib/api';
+import toast from 'react-hot-toast';
+import { useSocket } from '../../lib/useSocket';
 import {
   Search, SlidersHorizontal, X, ChevronDown, ChevronUp,
-  Briefcase, RefreshCw
+  Briefcase, RefreshCw, Loader2
 } from 'lucide-react';
 
 const CATEGORIES = [
-  'All Categories', 'Web Development', 'Mobile Development', 'UI/UX Design',
-  'Graphic Design', 'Digital Marketing', 'Content Writing', 'Data Science',
-  'AI & Machine Learning', 'Video & Animation', 'SEO', 'Blockchain',
+  'All Categories',
+  'Web Development',
+  'Mobile Development',
+  'Design & Creative',
+  'Writing & Translation',
+  'Marketing & Sales',
+  'Admin & Customer Support',
+  'Data Science & Analytics',
+  'Engineering & Architecture',
+  'Legal',
+  'Accounting & Finance',
+  'Other'
 ];
 
 const MOCK_JOBS = [
@@ -97,8 +109,8 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
 };
 
 export default function BrowseJobs() {
-  const [jobs, setJobs] = useState(MOCK_JOBS);
-  const [loading, setLoading] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -110,6 +122,58 @@ export default function BrowseJobs() {
     duration: [],
     sortBy: 'newest',
   });
+
+  const socket = useSocket();
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/api/jobs/all?limit=100');
+      setJobs(response.data.jobs || []);
+    } catch (error) {
+      console.error('Failed to fetch jobs:', error);
+      toast.error('Failed to load jobs');
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Real-time Socket.IO listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewJob = (newJob) => {
+      console.log('📢 New job received:', newJob);
+      setJobs(prevJobs => [newJob, ...prevJobs]);
+    };
+
+    const handleJobUpdated = (updatedJob) => {
+      console.log('📝 Job updated:', updatedJob);
+      setJobs(prevJobs => 
+        prevJobs.map(job => job._id === updatedJob._id ? updatedJob : job)
+      );
+    };
+
+    const handleJobDeleted = ({ jobId }) => {
+      console.log('🗑️ Job deleted:', jobId);
+      setJobs(prevJobs => prevJobs.filter(job => job._id !== jobId));
+    };
+
+    socket.on('job:created', handleNewJob);
+    socket.on('job:updated', handleJobUpdated);
+    socket.on('job:deleted', handleJobDeleted);
+
+    return () => {
+      socket.off('job:created', handleNewJob);
+      socket.off('job:updated', handleJobUpdated);
+      socket.off('job:deleted', handleJobDeleted);
+    };
+  }, [socket]);
 
   const activeFilterCount = [
     filters.category !== 'All Categories',
@@ -137,19 +201,47 @@ export default function BrowseJobs() {
   };
 
   const filteredJobs = jobs.filter(job => {
+    // Search filter
     if (search && !job.title.toLowerCase().includes(search.toLowerCase()) &&
       !job.description.toLowerCase().includes(search.toLowerCase()) &&
-      !job.skills.some(s => s.toLowerCase().includes(search.toLowerCase()))) return false;
+      !job.skills?.some(s => s.toLowerCase().includes(search.toLowerCase()))) return false;
+    
+    // Category filter
     if (filters.category !== 'All Categories' && job.category !== filters.category) return false;
-    if (filters.budgetType && job.budgetType !== filters.budgetType) return false;
-    if (filters.experienceLevel.length && !filters.experienceLevel.includes(job.experienceLevel)) return false;
-    if (filters.duration.length && !filters.duration.includes(job.duration)) return false;
+    
+    // Budget type filter (fixed vs hourly)
+    if (filters.budgetType && job.budget?.type !== filters.budgetType) return false;
+    
+    // Experience level filter
+    if (filters.experienceLevel.length && !filters.experienceLevel.map(l => l.toLowerCase()).includes(job.experienceLevel)) return false;
+    
+    // Duration filter - map backend values to frontend values
+    if (filters.duration.length > 0) {
+      const durationMap = {
+        'less-than-week': 'short',
+        '1-2-weeks': 'short',
+        '2-4-weeks': 'short',
+        '1-3-months': 'medium',
+        '3-6-months': 'medium',
+        'more-than-6-months': 'long'
+      };
+      const jobDurationCategory = durationMap[job.duration] || 'medium';
+      if (!filters.duration.includes(jobDurationCategory)) return false;
+    }
+    
+    // Budget range filter
+    if (filters.budgetMin || filters.budgetMax) {
+      const jobBudget = job.budget?.amount || 0;
+      if (filters.budgetMin && jobBudget < parseFloat(filters.budgetMin)) return false;
+      if (filters.budgetMax && jobBudget > parseFloat(filters.budgetMax)) return false;
+    }
+    
     return true;
   }).sort((a, b) => {
     if (filters.sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
     if (filters.sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-    if (filters.sortBy === 'budget_high') return (b.budgetMax || b.hourlyMax) - (a.budgetMax || a.hourlyMax);
-    if (filters.sortBy === 'budget_low') return (a.budgetMin || a.hourlyMin) - (b.budgetMin || b.hourlyMin);
+    if (filters.sortBy === 'budget_high') return (b.budget?.amount || 0) - (a.budget?.amount || 0);
+    if (filters.sortBy === 'budget_low') return (a.budget?.amount || 0) - (b.budget?.amount || 0);
     return 0;
   });
 
@@ -283,7 +375,7 @@ export default function BrowseJobs() {
                   {/* Experience Level */}
                   <FilterSection title="Experience Level">
                     <div className="space-y-2">
-                      {['Entry', 'Intermediate', 'Expert'].map(level => (
+                      {['beginner', 'intermediate', 'expert'].map(level => (
                         <label key={level} className="flex items-center gap-3 cursor-pointer group">
                           <input
                             type="checkbox"
@@ -291,7 +383,7 @@ export default function BrowseJobs() {
                             onChange={() => toggleArrayFilter('experienceLevel', level)}
                             className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                           />
-                          <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors">{level}</span>
+                          <span className="text-sm text-gray-700 group-hover:text-blue-600 transition-colors capitalize">{level}</span>
                         </label>
                       ))}
                     </div>
@@ -344,7 +436,7 @@ export default function BrowseJobs() {
               <div className="flex-1 min-w-0">
                 {loading ? (
                   <div className="flex items-center justify-center py-20">
-                    <RefreshCw className="animate-spin text-blue-600" size={32} />
+                    <Loader2 className="animate-spin text-blue-600" size={48} />
                   </div>
                 ) : filteredJobs.length === 0 ? (
                   <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center">

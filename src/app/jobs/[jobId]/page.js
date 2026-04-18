@@ -1,129 +1,168 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import FreelancerHeader from '../../../components/FreelancerHeader';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import JobCard from '../../../components/jobs/JobCard';
+import api from '../../../lib/api';
+import { useSocket } from '../../../lib/useSocket';
+import toast from 'react-hot-toast';
 import {
   MapPin, Clock, DollarSign, Bookmark, BookmarkCheck,
   Star, Users, Calendar, Briefcase, ChevronLeft,
-  CheckCircle, AlertCircle, Globe, Flag, Share2, Zap
+  CheckCircle, AlertCircle, Globe, Flag, Share2, Zap, RefreshCw, Loader2
 } from 'lucide-react';
-
-const MOCK_JOB = {
-  _id: '1',
-  title: 'Full Stack Developer Needed for E-commerce Platform',
-  description: `We are looking for an experienced full stack developer to build a modern e-commerce platform from scratch using React and Node.js.
-
-**Project Overview:**
-The platform will serve as a marketplace for local artisans to sell handmade products. We need someone who can handle both frontend and backend development with a strong eye for UI/UX.
-
-**Key Responsibilities:**
-- Build responsive product listing and detail pages
-- Implement shopping cart and checkout flow with Stripe integration
-- Develop admin panel for product and order management
-- Set up user authentication (JWT + OAuth)
-- Integrate with shipping APIs (FedEx/UPS)
-- Optimize for performance and SEO
-
-**Technical Requirements:**
-- React 18+ with Next.js
-- Node.js with Express or NestJS
-- MongoDB or PostgreSQL
-- Redis for caching
-- AWS S3 for media storage
-- Docker for containerization
-
-**Nice to Have:**
-- Experience with Shopify or similar platforms
-- Knowledge of PWA development
-- Previous e-commerce projects in portfolio`,
-  skills: ['React', 'Node.js', 'MongoDB', 'Tailwind CSS', 'REST API', 'Next.js', 'AWS', 'Docker'],
-  budgetType: 'fixed',
-  budgetMin: 1500,
-  budgetMax: 3000,
-  duration: 'medium',
-  experienceLevel: 'Intermediate',
-  category: 'Web Development',
-  proposalCount: 12,
-  isNew: true,
-  isFeatured: true,
-  isSaved: false,
-  visibility: 'public',
-  createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  client: {
-    name: 'TechCorp Inc.',
-    rating: 4.8,
-    isVerified: true,
-    location: 'New York, USA',
-    memberSince: 'Jan 2022',
-    totalJobsPosted: 24,
-    hireRate: 78,
-    totalSpent: '$12,400',
-    activeContracts: 3,
-    avatar: null,
-  },
-  activity: {
-    proposals: 12,
-    interviewing: 3,
-    invitesSent: 5,
-    lastViewed: '5 mins ago',
-  },
-};
-
-const SIMILAR_JOBS = [
-  {
-    _id: '3', title: 'React Developer for SaaS Dashboard',
-    description: 'Looking for a React developer to build a modern SaaS analytics dashboard with charts and real-time data.',
-    skills: ['React', 'TypeScript', 'Tailwind CSS'],
-    budgetType: 'fixed', budgetMin: 800, budgetMax: 1500,
-    duration: 'short', experienceLevel: 'Intermediate',
-    proposalCount: 8, isNew: false, isFeatured: false, isSaved: false,
-    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-    client: { name: 'StartupXYZ', rating: 4.3, isVerified: true },
-  },
-  {
-    _id: '4', title: 'Node.js Backend Developer for API Development',
-    description: 'Need an experienced Node.js developer to build RESTful APIs for our mobile application.',
-    skills: ['Node.js', 'Express', 'MongoDB', 'JWT'],
-    budgetType: 'hourly', hourlyMin: 30, hourlyMax: 60,
-    duration: 'medium', experienceLevel: 'Expert',
-    proposalCount: 5, isNew: true, isFeatured: false, isSaved: false,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-    client: { name: 'MobileFirst Co.', rating: 4.9, isVerified: true },
-  },
-];
-
-const formatDescription = (text) => {
-  return text.split('\n').map((line, i) => {
-    if (line.startsWith('**') && line.endsWith('**')) {
-      return <p key={i} className="font-bold text-gray-900 mt-5 mb-2">{line.replace(/\*\*/g, '')}</p>;
-    }
-    if (line.startsWith('- ')) {
-      return <li key={i} className="ml-4 text-gray-700">{line.slice(2)}</li>;
-    }
-    if (line.trim() === '') return <br key={i} />;
-    return <p key={i} className="text-gray-700">{line}</p>;
-  });
-};
 
 export default function JobDetail() {
   const { jobId } = useParams();
   const router = useRouter();
-  const [saved, setSaved] = useState(MOCK_JOB.isSaved);
-  const job = MOCK_JOB;
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [similarJobs, setSimilarJobs] = useState([]);
+  const [jobDeleted, setJobDeleted] = useState(false);
+
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (jobId) {
+      fetchJobDetails();
+    }
+  }, [jobId]);
+
+  // Real-time Socket.IO listener for job deletion
+  useEffect(() => {
+    if (!socket || !jobId) return;
+
+    const handleJobDeleted = ({ jobId: deletedJobId }) => {
+      if (deletedJobId === jobId) {
+        console.log('🗑️ Current job was deleted');
+        setJobDeleted(true);
+        setJob(null);
+      }
+    };
+
+    const handleJobUpdated = (updatedJob) => {
+      if (updatedJob._id === jobId) {
+        console.log('📝 Current job was updated');
+        setJob(updatedJob);
+      }
+    };
+
+    socket.on('job:deleted', handleJobDeleted);
+    socket.on('job:updated', handleJobUpdated);
+
+    return () => {
+      socket.off('job:deleted', handleJobDeleted);
+      socket.off('job:updated', handleJobUpdated);
+    };
+  }, [socket, jobId]);
+
+  const fetchJobDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/api/jobs/${jobId}`);
+      setJob(response.data.job);
+      
+      const userId = localStorage.getItem('userId');
+      setSaved(response.data.job.savedBy?.includes(userId));
+      
+      if (response.data.job.category) {
+        const similarResponse = await api.get(`/api/jobs/all?category=${response.data.job.category}&limit=3`);
+        setSimilarJobs(similarResponse.data.jobs.filter(j => j._id !== jobId));
+      }
+    } catch (error) {
+      console.error('Failed to fetch job details:', error);
+      if (error.response?.status === 404) {
+        setJobDeleted(true);
+      } else {
+        toast.error('Failed to load job details');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveJob = async () => {
+    if (jobDeleted) {
+      toast.error('This job is no longer available');
+      return;
+    }
+    
+    try {
+      const response = await api.post(`/api/jobs/${jobId}/save`);
+      setSaved(response.data.saved);
+      toast.success(response.data.saved ? 'Job saved!' : 'Job unsaved');
+    } catch (error) {
+      console.error('Failed to save job:', error);
+      if (error.response?.status === 404) {
+        setJobDeleted(true);
+        toast.error('This job is no longer available');
+      } else {
+        toast.error('Failed to save job');
+      }
+    }
+  };
 
   const handleReportIssue = () => {
-    router.push(`/disputes/new?jobId=${job._id}`);
+    router.push(`/disputes/new?jobId=${jobId}`);
   };
 
   const timeAgo = (date) => {
     const diff = Date.now() - new Date(date).getTime();
-    const hrs = Math.floor(diff / 3600000);
-    if (hrs < 24) return `${hrs} hours ago`;
-    return `${Math.floor(hrs / 24)} days ago`;
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(mins / 60);
+    const days = Math.floor(hrs / 24);
+    
+    if (mins < 60) return `${mins} ${mins === 1 ? 'minute' : 'minutes'} ago`;
+    if (hrs < 24) return `${hrs} ${hrs === 1 ? 'hour' : 'hours'} ago`;
+    return `${days} ${days === 1 ? 'day' : 'days'} ago`;
   };
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50">
+          <FreelancerHeader />
+          <div className="pt-24 pb-16 px-4 flex items-center justify-center">
+            <Loader2 className="animate-spin text-blue-600" size={48} />
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (!job || jobDeleted) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50">
+          <FreelancerHeader />
+          <div className="pt-16 flex items-center justify-center h-screen">
+            <div className="text-center max-w-md mx-auto px-4">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Briefcase size={40} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                {jobDeleted ? 'Job No Longer Available' : 'Job Not Found'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {jobDeleted 
+                  ? 'This job has been removed by the client or is no longer accepting proposals.'
+                  : 'The job you\'re looking for doesn\'t exist or has been removed.'}
+              </p>
+              <Link 
+                href="/browse-jobs" 
+                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Browse Available Jobs
+              </Link>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -154,8 +193,6 @@ export default function JobDetail() {
                   <div className="flex justify-between items-start gap-4 mb-6">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {job.isNew && <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">New</span>}
-                        {job.isFeatured && <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">⭐ Featured</span>}
                         <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">{job.category}</span>
                         <span className="text-xs text-gray-400">Posted {timeAgo(job.createdAt)}</span>
                       </div>
@@ -164,7 +201,7 @@ export default function JobDetail() {
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => setSaved(!saved)}
+                        onClick={handleSaveJob}
                         className={`p-2.5 rounded-xl border transition-colors ${saved ? 'border-blue-300 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-600'}`}
                       >
                         {saved ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
@@ -183,27 +220,25 @@ export default function JobDetail() {
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">Budget</p>
                       <p className="font-bold text-gray-900">
-                        {job.budgetType === 'fixed'
-                          ? `$${job.budgetMin} - $${job.budgetMax}`
-                          : `$${job.hourlyMin} - $${job.hourlyMax}/hr`}
+                        {job.budget?.type === 'fixed'
+                          ? `$${job.budget.amount}`
+                          : `$${job.budget?.amount}/hr`}
                       </p>
-                      <p className="text-xs text-gray-400 capitalize">{job.budgetType} price</p>
+                      <p className="text-xs text-gray-400 capitalize">{job.budget?.type} price</p>
                     </div>
                     <div className="text-center border-l border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Duration</p>
-                      <p className="font-bold text-gray-900">
-                        {job.duration === 'short' ? '< 1 month' : job.duration === 'medium' ? '1-3 months' : '3+ months'}
-                      </p>
+                      <p className="font-bold text-gray-900">{job.duration}</p>
                       <p className="text-xs text-gray-400">Project length</p>
                     </div>
                     <div className="text-center border-l border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Experience</p>
-                      <p className="font-bold text-gray-900">{job.experienceLevel}</p>
+                      <p className="font-bold text-gray-900 capitalize">{job.experienceLevel}</p>
                       <p className="text-xs text-gray-400">Level needed</p>
                     </div>
                     <div className="text-center border-l border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Proposals</p>
-                      <p className="font-bold text-gray-900">{job.proposalCount}</p>
+                      <p className="font-bold text-gray-900">{job.proposalCount || 0}</p>
                       <p className="text-xs text-gray-400">Submitted</p>
                     </div>
                   </div>
@@ -211,9 +246,10 @@ export default function JobDetail() {
                   {/* Description */}
                   <div>
                     <h2 className="text-lg font-bold text-gray-900 mb-4">Job Description</h2>
-                    <div className="prose prose-sm max-w-none leading-relaxed space-y-1">
-                      {formatDescription(job.description)}
-                    </div>
+                    <div
+                      className="prose prose-sm max-w-none leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: job.description }}
+                    />
                   </div>
                 </div>
 
@@ -221,7 +257,7 @@ export default function JobDetail() {
                 <div className="bg-white rounded-2xl border border-gray-200 p-8">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Skills Required</h2>
                   <div className="flex flex-wrap gap-2">
-                    {job.skills.map((skill, i) => (
+                    {job.skills?.map((skill, i) => (
                       <span key={i} className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium border border-blue-100 hover:bg-blue-100 transition-colors cursor-pointer">
                         {skill}
                       </span>
@@ -232,29 +268,34 @@ export default function JobDetail() {
                 {/* Activity */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-8">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Job Activity</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Proposals', value: job.activity.proposals, icon: Users, color: 'blue' },
-                      { label: 'Interviewing', value: job.activity.interviewing, icon: CheckCircle, color: 'green' },
-                      { label: 'Invites Sent', value: job.activity.invitesSent, icon: Globe, color: 'purple' },
-                      { label: 'Last Viewed', value: job.activity.lastViewed, icon: Clock, color: 'orange' },
-                    ].map(({ label, value, icon: Icon, color }) => (
-                      <div key={label} className={`p-4 bg-${color}-50 rounded-xl text-center`}>
-                        <Icon size={20} className={`text-${color}-500 mx-auto mb-2`} />
-                        <p className="font-bold text-gray-900">{value}</p>
-                        <p className="text-xs text-gray-500">{label}</p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-blue-50 rounded-xl text-center">
+                      <Users size={20} className="text-blue-500 mx-auto mb-2" />
+                      <p className="font-bold text-gray-900">{job.proposalCount || 0}</p>
+                      <p className="text-xs text-gray-500">Proposals</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 rounded-xl text-center">
+                      <Globe size={20} className="text-purple-500 mx-auto mb-2" />
+                      <p className="font-bold text-gray-900">{job.views || 0}</p>
+                      <p className="text-xs text-gray-500">Views</p>
+                    </div>
+                    <div className="p-4 bg-orange-50 rounded-xl text-center">
+                      <Clock size={20} className="text-orange-500 mx-auto mb-2" />
+                      <p className="font-bold text-gray-900">{timeAgo(job.createdAt)}</p>
+                      <p className="text-xs text-gray-500">Posted</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Similar Jobs */}
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Similar Jobs</h2>
-                  <div className="space-y-4">
-                    {SIMILAR_JOBS.map(j => <JobCard key={j._id} job={j} />)}
+                {similarJobs.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">Similar Jobs</h2>
+                    <div className="space-y-4">
+                      {similarJobs.map(j => <JobCard key={j._id} job={j} />)}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Sidebar */}
@@ -294,25 +335,18 @@ export default function JobDetail() {
                     Report Issue
                   </button>
 
-                  <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-5">
-                    <AlertCircle size={16} className="text-amber-500 flex-shrink-0" />
-                    <p className="text-xs text-amber-700">
-                      You have <span className="font-bold">1 free proposal</span> remaining. Submitting uses 5 credits.
-                    </p>
-                  </div>
-
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><DollarSign size={14} /> Budget</span>
-                      <span className="font-semibold text-gray-900">${job.budgetMin} – ${job.budgetMax}</span>
+                      <span className="font-semibold text-gray-900">${job.budget?.amount}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><Clock size={14} /> Duration</span>
-                      <span className="font-semibold text-gray-900">1–3 months</span>
+                      <span className="font-semibold text-gray-900">{job.duration}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><Users size={14} /> Experience</span>
-                      <span className="font-semibold text-gray-900">{job.experienceLevel}</span>
+                      <span className="font-semibold text-gray-900 capitalize">{job.experienceLevel}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><Globe size={14} /> Visibility</span>
@@ -327,12 +361,12 @@ export default function JobDetail() {
 
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                      {job.client.name[0]}
+                      {job.clientId?.name?.[0] || 'C'}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{job.client.name}</p>
+                      <p className="font-semibold text-gray-900">{job.clientId?.name || 'Anonymous Client'}</p>
                       <div className="flex items-center gap-1">
-                        {job.client.isVerified && (
+                        {job.clientId?.isVerified && (
                           <span className="text-xs text-blue-600 font-medium flex items-center gap-0.5">
                             <CheckCircle size={12} /> Verified
                           </span>
@@ -344,27 +378,15 @@ export default function JobDetail() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><Star size={14} className="text-yellow-400" /> Rating</span>
-                      <span className="font-semibold text-gray-900">{job.client.rating} / 5.0</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-gray-500 flex items-center gap-1.5"><Briefcase size={14} /> Jobs Posted</span>
-                      <span className="font-semibold text-gray-900">{job.client.totalJobsPosted}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-gray-500 flex items-center gap-1.5"><CheckCircle size={14} /> Hire Rate</span>
-                      <span className="font-semibold text-gray-900">{job.client.hireRate}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-gray-500 flex items-center gap-1.5"><DollarSign size={14} /> Total Spent</span>
-                      <span className="font-semibold text-gray-900">{job.client.totalSpent}</span>
+                      <span className="font-semibold text-gray-900">{job.clientId?.rating || 0} / 5.0</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <span className="text-gray-500 flex items-center gap-1.5"><MapPin size={14} /> Location</span>
-                      <span className="font-semibold text-gray-900">{job.client.location}</span>
+                      <span className="font-semibold text-gray-900">{job.location || 'Remote'}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                      <span className="text-gray-500 flex items-center gap-1.5"><Calendar size={14} /> Member Since</span>
-                      <span className="font-semibold text-gray-900">{job.client.memberSince}</span>
+                      <span className="text-gray-500 flex items-center gap-1.5"><Briefcase size={14} /> Company</span>
+                      <span className="font-semibold text-gray-900">{job.clientId?.companySize || 'N/A'}</span>
                     </div>
                   </div>
                 </div>

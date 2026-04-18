@@ -65,12 +65,12 @@ export default function Header() {
           Authorization: `Bearer ${token}`
         }
       });
-      
+
       if (response.data.success) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         setUser(response.data.user);
         setShowRoleMenu(false);
-        
+
         if (newRole === 'client') {
           router.push('/client-dashboard');
         } else {
@@ -84,6 +84,14 @@ export default function Header() {
         localStorage.removeItem('user');
         router.push('/login');
       }
+    }
+  };
+
+  const handleSmoothScroll = (e, targetId) => {
+    e.preventDefault();
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -112,29 +120,27 @@ export default function Header() {
               <>
                 <Link href="/freelancer-dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">Dashboard</Link>
                 <Link href="/browse-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Browse Jobs</Link>
-                <Link href="/my-proposals" className="text-gray-700 hover:text-blue-600 transition-colors">My Proposals</Link>
-                <Link href="/my-projects" className="text-gray-700 hover:text-blue-600 transition-colors">My Projects</Link>
+                <Link href="/freelancer-dashboard/proposals" className="text-gray-700 hover:text-blue-600 transition-colors">My Proposals</Link>
+                <Link href="/saved-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Saved Jobs</Link>
               </>
             ) : isLoggedIn && currentRole === 'client' ? (
               <>
                 <Link href="/client-dashboard" className="text-gray-700 hover:text-blue-600 transition-colors">Dashboard</Link>
-                <Link href="/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
+                <Link href="/client-dashboard/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
                 <Link href="/post-job" className="text-gray-700 hover:text-blue-600 transition-colors">Post Job</Link>
-                <Link href="/my-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">My Jobs</Link>
+                <Link href="/client-dashboard/my-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">My Jobs</Link>
               </>
             ) : (
               <>
                 <Link href="/browse-jobs" className="text-gray-700 hover:text-blue-600 transition-colors">Browse Jobs</Link>
-                <Link href="/find-freelancers" className="text-gray-700 hover:text-blue-600 transition-colors">Find Freelancers</Link>
-                <Link href="/how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors">How it Works</Link>
+                <a href="#services" onClick={(e) => handleSmoothScroll(e, 'services')} className="text-gray-700 hover:text-blue-600 transition-colors cursor-pointer">Services</a>
+                <a href="#how-it-works" onClick={(e) => handleSmoothScroll(e, 'how-it-works')} className="text-gray-700 hover:text-blue-600 transition-colors cursor-pointer">How it Works</a>
               </>
             )}
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <button className="p-2 text-gray-600 hover:text-blue-600 transition-colors">
-              <Search size={20} />
-            </button>
+
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
                 {/* Role Switcher - only show if user has multiple completed roles */}
@@ -155,9 +161,8 @@ export default function Header() {
                           <button
                             key={role}
                             onClick={() => switchRole(role)}
-                            className={`w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors capitalize ${
-                              currentRole === role ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                            }`}
+                            className={`w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors capitalize ${currentRole === role ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                              }`}
                           >
                             {role}
                           </button>
@@ -166,17 +171,17 @@ export default function Header() {
                     )}
                   </div>
                 )}
-                
+
                 {/* Add Role Option - show if user has only one role */}
                 {false && user?.roles?.length === 1 && (
-                  <Link 
+                  <Link
                     href="/role-selection"
                     className="px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     Add {user.primaryRole === 'freelancer' ? 'Client' : 'Freelancer'} Role
                   </Link>
                 )}
-                
+
                 <div className="relative profile-menu">
                   <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -210,7 +215,7 @@ export default function Header() {
             )}
           </div>
 
-          <button 
+          <button
             className="md:hidden p-2"
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -225,21 +230,21 @@ export default function Header() {
                 <>
                   <Link href="/freelancer-dashboard" className="text-gray-700">Dashboard</Link>
                   <Link href="/browse-jobs" className="text-gray-700">Browse Jobs</Link>
-                  <Link href="/my-proposals" className="text-gray-700">My Proposals</Link>
-                  <Link href="/my-projects" className="text-gray-700">My Projects</Link>
+                  <Link href="/freelancer-dashboard/proposals" className="text-gray-700">My Proposals</Link>
+                  <Link href="/saved-jobs" className="text-gray-700">Saved Jobs</Link>
                 </>
               ) : isLoggedIn && currentRole === 'client' ? (
                 <>
                   <Link href="/client-dashboard" className="text-gray-700">Dashboard</Link>
-                  <Link href="/find-freelancers" className="text-gray-700">Find Freelancers</Link>
+                  <Link href="/client-dashboard/find-freelancers" className="text-gray-700">Find Freelancers</Link>
                   <Link href="/post-job" className="text-gray-700">Post Job</Link>
-                  <Link href="/my-jobs" className="text-gray-700">My Jobs</Link>
+                  <Link href="/client-dashboard/my-jobs" className="text-gray-700">My Jobs</Link>
                 </>
               ) : (
                 <>
                   <Link href="/browse-jobs" className="text-gray-700">Browse Jobs</Link>
-                  <Link href="/find-freelancers" className="text-gray-700">Find Freelancers</Link>
-                  <Link href="/how-it-works" className="text-gray-700">How it Works</Link>
+                  <a href="#services" onClick={(e) => { handleSmoothScroll(e, 'services'); setIsOpen(false); }} className="text-gray-700">Services</a>
+                  <a href="#how-it-works" onClick={(e) => { handleSmoothScroll(e, 'how-it-works'); setIsOpen(false); }} className="text-gray-700">How it Works</a>
                 </>
               )}
               {isLoggedIn ? (

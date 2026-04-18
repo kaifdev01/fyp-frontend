@@ -2,7 +2,6 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Hero from "../components/Hero";
-import TrustedBy from "../components/TrustedBy";
 import Services from "../components/Services";
 import WhyChooseUs from "../components/WhyChooseUs";
 import HowItWorks from "../components/HowItWorks";
@@ -19,7 +18,7 @@ export default function Home() {
       <main>
         <div className="flex flex-col gap-0">
           <Hero />
-          <TrustedBy />
+          {/* <TrustedBy /> */}
           <Services />
           <WhyChooseUs />
           <HowItWorks />

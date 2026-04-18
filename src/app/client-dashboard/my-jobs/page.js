@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { notificationEvents } from '../../../lib/notificationEvents';
 import { useSocket } from '../../../lib/useSocket';
+import api from '../../../lib/api';
 
 const STATUS_COLORS = {
   open: { bg: 'bg-green-100', text: 'text-green-700', label: 'Active' },
@@ -140,16 +141,10 @@ export default function MyJobsPage() {
 
   const fetchMyJobs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs/client/my-jobs`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok) setJobs(data.jobs || []);
-      else toast.error(data.message || 'Failed to fetch jobs');
+      const response = await api.get('/api/jobs/client/my-jobs');
+      setJobs(response.data.jobs || []);
     } catch (error) {
-      toast.error('Error fetching jobs');
+      toast.error(error.response?.data?.message || 'Failed to fetch jobs');
     } finally {
       setLoading(false);
     }
@@ -158,22 +153,12 @@ export default function MyJobsPage() {
   const handleDeleteJob = async (jobId, jobTitle) => {
     if (!confirm(`Are you sure you want to delete "${jobTitle}"?`)) return;
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs/${jobId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success(`"${jobTitle}" has been deleted.`);
-        notificationEvents.refresh();
-        setJobs(jobs.filter(j => j._id !== jobId));
-      } else {
-        toast.error(data.message || 'Failed to delete job');
-      }
+      await api.delete(`/api/jobs/${jobId}`);
+      toast.success(`"${jobTitle}" has been deleted.`);
+      notificationEvents.refresh();
+      setJobs(jobs.filter(j => j._id !== jobId));
     } catch (error) {
-      toast.error('Error deleting job');
+      toast.error(error.response?.data?.message || 'Failed to delete job');
     }
   };
 

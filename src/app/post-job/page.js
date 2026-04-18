@@ -12,6 +12,7 @@ import {
   Clock, Users, AlertCircle, X, Plus, Trash2, Loader2
 } from 'lucide-react';
 import RichTextEditor from '../../components/RichTextEditor';
+import api from '../../lib/api';
 
 const SKILL_SUGGESTIONS = [
   // Programming Languages
@@ -207,40 +208,28 @@ export default function PostJob() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://fyp-backend-liard-eight.vercel.app';
-      const response = await fetch(`${backendUrl}/api/jobs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await api.post('/api/jobs', {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        skills: formData.skills,
+        budget: {
+          type: formData.budgetType,
+          amount: parseFloat(formData.budgetAmount),
+          currency: 'USD'
         },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          skills: formData.skills,
-          budget: {
-            type: formData.budgetType,
-            amount: parseFloat(formData.budgetAmount),
-            currency: 'USD'
-          },
-          duration: formData.duration,
-          experienceLevel: formData.experienceLevel,
-          screeningQuestions: formData.questions
-        })
+        duration: formData.duration,
+        experienceLevel: formData.experienceLevel,
+        screeningQuestions: formData.questions
       });
 
-      const data = await response.json();
-      if (response.ok) {
+      if (response.data.success) {
         toast.success('🎉 Job posted successfully! It\'s now live for freelancers.');
         notificationEvents.refresh();
         setSubmitted(true);
-      } else {
-        toast.error(data.message || 'Failed to post job');
       }
     } catch (error) {
-      toast.error('Error posting job');
+      toast.error(error.response?.data?.message || 'Error posting job');
       console.error('Error:', error);
     } finally {
       setSubmitting(false);
